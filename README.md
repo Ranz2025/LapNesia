@@ -1,24 +1,63 @@
+# About Laravel
+
+<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+
+<p align="center">
+<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
+<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
+<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
+<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
+</p>
+
+Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+
+- [Simple, fast routing engine](https://laravel.com/docs/routing).
+- [Powerful dependency injection container](https://laravel.com/docs/container).
+- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
+- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
+- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
+- [Robust background job processing](https://laravel.com/docs/queues).
+- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+
+Laravel is accessible, powerful, and provides tools required for large, robust applications.
+
+## Learning Laravel
+
+Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+
+You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+
+If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+
+## Contributing
+
+Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+
+## Code of Conduct
+
+In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+
+## Security Vulnerabilities
+
+If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+
+## License
+
+The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+
+---
+
+---
+
 # LapNesia 🖥️
 
 Platform jual beli laptop bekas dengan fitur inspeksi teknisi, escrow payment, dan manajemen multi-role.
 
-**Role yang tersedia:** Buyer · Seller · Technician · Admin · Owner
-
----
-
-## Tech Stack
-
-| Bagian | Teknologi |
-|--------|-----------|
-| Frontend | React + Vite |
-| Backend | Laravel 11 (REST API) |
-| Auth | Laravel Sanctum (token-based) |
-| Database | MySQL |
-| Payment | Midtrans |
-
 ---
 
 ## Requirement
+
+Pastikan sudah terinstall:
 
 - PHP >= 8.2 + Composer
 - Node.js >= 18 + npm
@@ -35,16 +74,18 @@ git clone https://github.com/cyeRanz/LapNesia.git
 cd LapNesia
 ```
 
+---
+
 ### 2. Setup Backend
 
 ```bash
 cd Backend
-cp .env.example .env
+copy .env.example .env
 composer install
 php artisan key:generate
 ```
 
-Edit file `.env` sesuaikan database:
+Buka file `Backend/.env`, sesuaikan bagian database:
 
 ```env
 DB_CONNECTION=mysql
@@ -52,16 +93,10 @@ DB_HOST=127.0.0.1
 DB_PORT=3306
 DB_DATABASE=lapnesia
 DB_USERNAME=root
-DB_PASSWORD=your_password
-
-FRONTEND_URL=http://localhost:5173
-
-MIDTRANS_SERVER_KEY=SB-Mid-server-xxxxxx
-MIDTRANS_CLIENT_KEY=SB-Mid-client-xxxxxx
-MIDTRANS_IS_PRODUCTION=false
+DB_PASSWORD=isi_password_mysql_kamu
 ```
 
-Buat database `lapnesia` di MySQL, lalu jalankan:
+Buat database bernama `lapnesia` di MySQL, lalu jalankan:
 
 ```bash
 php artisan migrate --seed
@@ -69,72 +104,58 @@ php artisan storage:link
 php artisan serve
 ```
 
-Backend berjalan di: `http://localhost:8000`
+✅ Backend berjalan di `http://localhost:8000`
+
+---
 
 ### 3. Setup Frontend
 
+Buka terminal baru, lalu:
+
 ```bash
-cd ../Frontend
-cp .env.example .env
+cd Frontend
+copy .env.example .env
 npm install
 npm run dev
 ```
 
-Pastikan `.env` berisi:
+✅ Frontend berjalan di `http://localhost:5173`
+
+---
+
+## Akun Default
+
+Semua akun menggunakan password: **`password`**
+
+| Role | Email |
+|------|-------|
+| Admin | admin@lapnesia.com |
+| Owner | owner@lapnesia.com |
+| Seller | seller@lapnesia.com |
+| Buyer | buyer@lapnesia.com |
+| Technician | technician@lapnesia.com |
+
+---
+
+## Midtrans (Payment)
+
+Project ini pakai Midtrans **Sandbox** (mode testing, tidak perlu kartu asli).
+
+1. Daftar gratis di [dashboard.midtrans.com](https://dashboard.midtrans.com)
+2. Masuk ke **Settings → Access Keys**
+3. Salin **Server Key** dan **Client Key**, isi di `Backend/.env`:
 
 ```env
-VITE_API_URL=http://localhost:8000/api
+MIDTRANS_SERVER_KEY=SB-Mid-server-xxxxxx
+MIDTRANS_CLIENT_KEY=SB-Mid-client-xxxxxx
+MIDTRANS_IS_PRODUCTION=false
 ```
 
-Frontend berjalan di: `http://localhost:5173`
+> Tanpa Midtrans, fitur pembayaran tidak akan berfungsi.
 
 ---
 
-## Akun Default (Seeder)
+## Catatan
 
-Setelah `migrate --seed`, akun berikut tersedia:
-
-| Role | Email | Password |
-|------|-------|----------|
-| Admin | admin@lapnesia.com | |
-| Owner | owner@lapnesia.com | |
-| Seller | seller@lapnesia.com | |
-| Buyer | buyer@lapnesia.com | |
-| Technician | technician@lapnesia.com | |
-
----
-
-## Konfigurasi Midtrans
-
-Project ini menggunakan Midtrans **Sandbox** (mode testing). Daftar akun gratis di [dashboard.midtrans.com](https://dashboard.midtrans.com), lalu ambil Server Key dan Client Key dari menu **Settings → Access Keys**.
-
----
-
-## Struktur Folder
-
-```
-LapNesia/
-├── Frontend/       # React + Vite
-│   ├── src/
-│   │   ├── pages/      # Halaman per role
-│   │   ├── components/ # Komponen reusable
-│   │   ├── services/   # API calls
-│   │   └── routes/     # Routing & ProtectedRoute
-│   └── .env.example
-└── Backend/        # Laravel REST API
-    ├── app/
-    │   ├── Http/Controllers/Api/V1/
-    │   ├── Models/
-    │   ├── Services/
-    │   └── Notifications/
-    ├── database/
-    │   ├── migrations/
-    │   └── seeders/
-    └── .env.example
-```
-
----
-
-## License
-
-[MIT](https://opensource.org/licenses/MIT)
+- Jalankan **Backend** dan **Frontend** di dua terminal berbeda secara bersamaan.
+- Jika gambar produk tidak muncul, pastikan sudah menjalankan `php artisan storage:link`.
