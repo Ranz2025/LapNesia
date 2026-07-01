@@ -91,7 +91,7 @@ Buka file `Backend/.env`, sesuaikan bagian database:
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
 DB_PORT=3306
-DB_DATABASE=lapnesia
+DB_DATABASE=
 DB_USERNAME=root
 DB_PASSWORD=isi_password_mysql_kamu
 ```
@@ -124,8 +124,6 @@ npm run dev
 ---
 
 ## Akun Default
-
-Semua akun menggunakan password: **`password`**
 
 | Role | Email |
 |------|-------|
