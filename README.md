@@ -70,7 +70,7 @@ Pastikan sudah terinstall:
 ### 1. Clone Repository
 
 ```bash
-git clone https://github.com/cyeRanz/LapNesia.git
+git clone https://github.com/Ranz2025/LapNesia.git
 cd LapNesia
 ```
 
