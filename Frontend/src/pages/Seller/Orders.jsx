@@ -25,7 +25,7 @@ const STATUS_LABEL = {
   paid: "Dibayar",
   shipped: "Dikirim",
   completed: "Selesai",
-  expired: "Kedaluwarsa",
+  expired: "Dibatalkan",
   cancelled: "Dibatalkan",
 };
 

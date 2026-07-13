@@ -487,9 +487,9 @@ body {
 
     {{-- Summary bar --}}
     @php
-        $countGood  = collect($components)->filter(fn($v) => $v === 'good')->count();
-        $countNeeds = collect($components)->filter(fn($v) => $v === 'needs_attention')->count();
-        $countFault = collect($components)->filter(fn($v) => $v === 'faulty')->count();
+        $countGood  = collect($components)->filter(fn($c) => $c['status'] === 'good')->count();
+        $countNeeds = collect($components)->filter(fn($c) => $c['status'] === 'needs_attention')->count();
+        $countFault = collect($components)->filter(fn($c) => $c['status'] === 'faulty')->count();
     @endphp
     <div class="section-title">Hasil Pemeriksaan — Ringkasan</div>
     <div class="summary-bar" style="margin-bottom:10px;">
@@ -517,15 +517,20 @@ body {
             </tr>
         </thead>
         <tbody>
-            @foreach($components as $name => $status)
+            @foreach($components as $name => $comp)
             @php
+                $status = $comp['status'];
+                $notes  = $comp['notes'] ?? null;
                 $isGood  = $status === 'good';
                 $isNeeds = $status === 'needs_attention';
                 $isFault = $status === 'faulty';
-                $badgeClass = $isGood ? 'badge-good' : ($isNeeds ? 'badge-needs' : 'badge-faulty');
-                $dotClass   = $isGood ? 'dot-good'  : ($isNeeds ? 'dot-needs'  : 'dot-faulty');
-                $statusLabel = $isGood ? 'Baik' : ($isNeeds ? 'Perlu Perhatian' : 'Rusak');
-                $keterangan = $isGood ? 'Berfungsi normal' : ($isNeeds ? 'Butuh pemeriksaan lanjut' : 'Tidak berfungsi / rusak');
+                $badgeClass  = $isGood ? 'badge-good' : ($isNeeds ? 'badge-needs' : 'badge-faulty');
+                $dotClass    = $isGood ? 'dot-good'   : ($isNeeds ? 'dot-needs'   : 'dot-faulty');
+                $statusLabel = $isGood ? 'Baik'       : ($isNeeds ? 'Perlu Perhatian' : 'Rusak');
+                // Gunakan keterangan dari teknisi jika ada, fallback ke teks default
+                $keterangan  = $notes
+                    ? $notes
+                    : ($isGood ? 'Berfungsi normal' : ($isNeeds ? 'Butuh pemeriksaan lanjut' : 'Tidak berfungsi / rusak'));
             @endphp
             <tr>
                 <td>

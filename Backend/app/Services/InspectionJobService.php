@@ -71,7 +71,7 @@ class InspectionJobService
 
     public function find(string $id): ?InspectionJob
     {
-        return InspectionJob::with(['product', 'technician', 'requester', 'report', 'payment', 'rating'])->find($id);
+        return InspectionJob::with(['product', 'technician', 'requester', 'report.photos', 'payment', 'rating'])->find($id);
     }
 
     public function accept(InspectionJob $job, string $technicianId): InspectionJob

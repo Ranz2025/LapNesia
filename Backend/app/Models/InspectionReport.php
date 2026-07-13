@@ -11,14 +11,23 @@ class InspectionReport extends Model
         'job_id',
         'technician_id',
         'battery_status',
+        'battery_notes',
         'screen_status',
+        'screen_notes',
         'keyboard_status',
+        'keyboard_notes',
         'touchpad_status',
+        'touchpad_notes',
         'port_status',
+        'port_notes',
         'storage_status',
+        'storage_notes',
         'ram_status',
+        'ram_notes',
         'cpu_status',
+        'cpu_notes',
         'physical_status',
+        'physical_notes',
         'overall_score',
         'notes',
         'recommendation',
@@ -41,5 +50,12 @@ class InspectionReport extends Model
     public function technician()
     {
         return $this->belongsTo(User::class, 'technician_id');
+    }
+
+    public function photos()
+    {
+        return $this->hasMany(InspectionReportPhoto::class, 'inspection_report_id')
+                    ->orderBy('sort_order')
+                    ->orderBy('id');
     }
 }

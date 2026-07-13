@@ -12,7 +12,7 @@ import api from "../../services/api";
 import { rejectInspectionJob, setInspectionSchedule, cancelInspectionJob } from "../../services/inspectionService";
 import { startChat } from "../../services/chatService";
 
-/* ─── Design Tokens ─── */
+/* ─── DESIGN TOKENS (mirrors Home.jsx) ─────────────────────── */
 const FONT_DISPLAY = "'Baloo 2', sans-serif";
 const FONT_BODY    = "'Inter', sans-serif";
 const GRAD_PRIMARY = "linear-gradient(135deg, #2563EB 0%, #1D4ED8 40%, #0891B2 75%, #06B6D4 100%)";
@@ -23,7 +23,10 @@ const CLR_SUBTLE    = "#94A3B8";
 const CLR_BORDER    = "#BFDBFE";
 const CLR_BORDER_LT = "#E2E8F0";
 const CLR_ACCENT    = "#2563EB";
+
+/* Shared vertical rhythm — same tokens as Home.jsx so both pages breathe alike */
 const SECTION_X = "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8";
+const SECTION_Y = "py-10 md:py-14";
 
 const STATUS_BADGE = {
   pending:     { bg: "rgba(245,158,11,0.12)", color: "#D97706", label: "Menunggu" },
@@ -35,11 +38,12 @@ const STATUS_BADGE = {
   cancelled:   { bg: "rgba(239,68,68,0.12)",  color: "#DC2626", label: "Dibatalkan" },
 };
 
-function SectionLabel({ icon, text }) {
+/* ─── SECTION LABEL (now accepts color/bg/border like Home.jsx) ─── */
+function SectionLabel({ icon, text, color = CLR_ACCENT, bg = "rgba(37,99,235,0.08)", border = "rgba(37,99,235,0.20)" }) {
   return (
     <span
       className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-widest px-3 py-1 rounded-full font-semibold mb-3"
-      style={{ color: CLR_ACCENT, background: "rgba(37,99,235,0.08)", border: "1px solid rgba(37,99,235,0.20)" }}
+      style={{ color, background: bg, border: `1px solid ${border}` }}
     >
       {icon} {text}
     </span>
@@ -90,7 +94,7 @@ function ScheduleModal({ jobId, onClose, onSuccess }) {
               Tentukan Jadwal Inspeksi
             </h3>
           </div>
-          <button onClick={onClose} className="w-9 h-9 rounded-xl flex items-center justify-center transition hover:bg-white/60" style={{ color: CLR_MUTED }}>
+          <button onClick={onClose} className="w-9 h-9 rounded-xl flex items-center justify-center transition hover:bg-white/60 flex-shrink-0" style={{ color: CLR_MUTED }}>
             <X size={18} />
           </button>
         </div>
@@ -180,9 +184,8 @@ function ScheduleModal({ jobId, onClose, onSuccess }) {
   );
 }
 
-
 /* ─── Job Card ─── */
-function JobCard({ job, onAccept, onReject, onComplete, onOpenSchedule, onCancel, onChatSeller, navigate }) {
+function JobCard({ job, onAccept, onReject, onComplete, onOpenSchedule, onCancel, onChatSeller, onChatBuyer, navigate }) {
   const badge = STATUS_BADGE[job.status] || STATUS_BADGE.pending;
   const isPending  = job.status === "pending" || job.status === "assigned";
   const isAccepted = job.status === "accepted";
@@ -194,7 +197,9 @@ function JobCard({ job, onAccept, onReject, onComplete, onOpenSchedule, onCancel
   const hasReport   = isDone && !!job.report;
   const canCancel   = isPending || isAccepted; // teknisi bisa batalkan sebelum dibayar
   const seller      = job.product?.seller;
+  const buyer       = job.buyer ?? job.requester;
   const canChatSeller = !!seller && !["cancelled", "rejected"].includes(job.status);
+  const canChatBuyer  = !!buyer  && !["cancelled", "rejected"].includes(job.status);
 
   /* Label badge lebih informatif */
   const badgeLabel = isAccepted && !hasSchedule
@@ -208,15 +213,15 @@ function JobCard({ job, onAccept, onReject, onComplete, onOpenSchedule, onCancel
 
   return (
     <div
-      className="rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1"
+      className="group rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1.5 flex flex-col h-full"
       style={{ background: "#FFFFFF", border: `1px solid ${CLR_BORDER_LT}`, boxShadow: "0 2px 10px rgba(0,0,0,0.04)" }}
       onMouseEnter={(e) => { e.currentTarget.style.borderColor = CLR_ACCENT; e.currentTarget.style.boxShadow = "0 16px 40px -10px rgba(37,99,235,0.20)"; }}
       onMouseLeave={(e) => { e.currentTarget.style.borderColor = CLR_BORDER_LT; e.currentTarget.style.boxShadow = "0 2px 10px rgba(0,0,0,0.04)"; }}
     >
       {/* Top accent strip */}
-      <div className="h-1" style={{ background: isDone ? GRAD_PRIMARY : badgeColor }} />
+      <div className="h-1 flex-shrink-0" style={{ background: isDone ? GRAD_PRIMARY : badgeColor }} />
 
-      <div className="p-5 sm:p-6">
+      <div className="p-5 sm:p-6 flex flex-col flex-1">
         {/* Header row */}
         <div className="flex flex-col sm:flex-row justify-between items-start gap-3 mb-4">
           <div className="min-w-0 flex items-start gap-3">
@@ -252,16 +257,16 @@ function JobCard({ job, onAccept, onReject, onComplete, onOpenSchedule, onCancel
             <User size={14} style={{ color: CLR_ACCENT }} />
             <span>Buyer: <span className="font-medium" style={{ color: CLR_TEXT }}>{job.buyer?.name || job.requester?.name || "-"}</span></span>
           </div>
-          {job.laptop_address && (
-            <div className="flex items-center gap-2" style={{ color: CLR_MUTED }}>
-              <MapPin size={14} style={{ color: CLR_ACCENT }} />
-              <span className="truncate">{job.laptop_address}</span>
-            </div>
-          )}
           {seller && (
             <div className="flex items-center gap-2" style={{ color: CLR_MUTED }}>
               <User size={14} style={{ color: "#0891B2" }} />
               <span>Seller: <span className="font-medium" style={{ color: CLR_TEXT }}>{seller.name}</span></span>
+            </div>
+          )}
+          {job.laptop_address && (
+            <div className="flex items-center gap-2 sm:col-span-2" style={{ color: CLR_MUTED }}>
+              <MapPin size={14} style={{ color: CLR_ACCENT }} />
+              <span>Alamat Laptop: <span className="font-medium" style={{ color: CLR_TEXT }}>{job.laptop_address}</span></span>
             </div>
           )}
         </div>
@@ -301,6 +306,9 @@ function JobCard({ job, onAccept, onReject, onComplete, onOpenSchedule, onCancel
             Catatan buyer: {job.inspection_notes}
           </p>
         )}
+
+        {/* Spacer keeps the action row pinned to the bottom of every card, even with uneven content heights */}
+        <div className="mt-auto" />
 
         {/* Actions */}
         <div className="flex flex-wrap gap-2 pt-4" style={{ borderTop: `1px solid ${CLR_BORDER_LT}` }}>
@@ -405,6 +413,21 @@ function JobCard({ job, onAccept, onReject, onComplete, onOpenSchedule, onCancel
             </button>
           )}
 
+          {/* Chat Buyer */}
+          {canChatBuyer && (
+            <button
+              onClick={() => onChatBuyer(buyer.id, job.product?.id)}
+              className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-2xl transition hover:brightness-95 active:scale-95"
+              style={{
+                background: "rgba(124,58,237,0.10)",
+                border: "1px solid rgba(124,58,237,0.25)",
+                color: "#7C3AED",
+              }}
+            >
+              <MessageCircle size={13} /> Chat Buyer
+            </button>
+          )}
+
           {/* Batalkan — teknisi bisa batalkan saat assigned/accepted (sebelum dibayar) */}
           {canCancel && (
             <button
@@ -425,8 +448,9 @@ function JobCard({ job, onAccept, onReject, onComplete, onOpenSchedule, onCancel
   );
 }
 
-
-/* ═══════════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════
+   MAIN COMPONENT
+═══════════════════════════════════════════════════════════════ */
 export default function InspectionJobs() {
   const navigate = useNavigate();
   const [jobs,    setJobs]    = useState([]);
@@ -505,9 +529,20 @@ export default function InspectionJobs() {
     }
   };
 
-  const pendingCount  = jobs.filter(j => j.status === "pending" || j.status === "assigned").length;
-  const activeCount   = jobs.filter(j => j.status === "accepted" || j.status === "in_progress").length;
-  const doneCount     = jobs.filter(j => j.status === "completed").length;
+  const handleChatBuyer = async (buyerId, productId) => {
+    try {
+      const res = await startChat(buyerId, productId ?? null);
+      const roomId = res.data?.data?.id ?? res.data?.id;
+      if (!roomId) throw new Error("Room tidak ditemukan.");
+      navigate(`/chat/${roomId}`);
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Gagal membuka chat dengan buyer.");
+    }
+  };
+
+  const pendingCount    = jobs.filter(j => j.status === "pending" || j.status === "assigned").length;
+  const activeCount     = jobs.filter(j => j.status === "accepted" || j.status === "in_progress").length;
+  const doneCount       = jobs.filter(j => j.status === "completed").length;
   const noScheduleCount = jobs.filter(j => j.status === "accepted" && !j.scheduled_by_technician).length;
 
   return (
@@ -527,136 +562,173 @@ export default function InspectionJobs() {
       {cancelModal.open && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)" }}
+          style={{ background: "rgba(15,23,42,0.55)", backdropFilter: "blur(4px)" }}
+          onClick={(e) => { if (e.target === e.currentTarget) setCancelModal({ open: false, jobId: null }); }}
         >
           <div
-            className="w-full max-w-sm rounded-2xl p-6 shadow-2xl"
-            style={{ background: "#FFFFFF", border: `1px solid ${CLR_BORDER_LT}` }}
+            className="w-full max-w-sm rounded-3xl overflow-hidden"
+            style={{ background: "#FFFFFF", border: `1px solid ${CLR_BORDER_LT}`, boxShadow: "0 24px 64px rgba(0,0,0,0.18)" }}
           >
-            <div className="flex justify-center mb-4">
-              <div
-                className="w-14 h-14 rounded-full flex items-center justify-center"
-                style={{ background: "rgba(239,68,68,0.10)" }}
-              >
-                <XCircle size={28} color="#DC2626" />
+            <div className="p-6">
+              <div className="flex justify-center mb-4">
+                <div
+                  className="w-14 h-14 rounded-2xl flex items-center justify-center"
+                  style={{ background: "rgba(239,68,68,0.10)" }}
+                >
+                  <XCircle size={26} color="#DC2626" />
+                </div>
               </div>
-            </div>
-            <h3
-              className="text-center text-base font-bold mb-2"
-              style={{ fontFamily: FONT_DISPLAY, color: CLR_TEXT }}
-            >
-              Batalkan Inspeksi?
-            </h3>
-            <p className="text-center text-sm mb-6" style={{ color: CLR_MUTED }}>
-              Kamu yakin ingin membatalkan job ini? Buyer akan mendapat notifikasi pembatalan.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setCancelModal({ open: false, jobId: null })}
-                disabled={cancelling}
-                className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition hover:brightness-95"
-                style={{
-                  background: "rgba(148,163,184,0.12)",
-                  color: CLR_MUTED,
-                  border: `1px solid ${CLR_BORDER_LT}`,
-                }}
+              <h3
+                className="text-center text-base font-bold mb-2"
+                style={{ fontFamily: FONT_DISPLAY, color: CLR_TEXT }}
               >
-                Tidak, Kembali
-              </button>
-              <button
-                onClick={handleCancel}
-                disabled={cancelling}
-                className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white transition hover:brightness-95 disabled:opacity-60"
-                style={{ background: "linear-gradient(135deg,#ef4444,#dc2626)" }}
-              >
-                {cancelling ? "Membatalkan..." : "Ya, Batalkan"}
-              </button>
+                Batalkan Inspeksi?
+              </h3>
+              <p className="text-center text-sm mb-6" style={{ color: CLR_MUTED }}>
+                Kamu yakin ingin membatalkan job ini? Buyer akan mendapat notifikasi pembatalan.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setCancelModal({ open: false, jobId: null })}
+                  disabled={cancelling}
+                  className="flex-1 py-2.5 rounded-2xl text-sm font-semibold transition hover:brightness-95 disabled:opacity-60"
+                  style={{
+                    background: "#F1F5F9",
+                    color: CLR_MUTED,
+                    border: `1px solid ${CLR_BORDER_LT}`,
+                  }}
+                >
+                  Tidak, Kembali
+                </button>
+                <button
+                  onClick={handleCancel}
+                  disabled={cancelling}
+                  className="flex-1 py-2.5 rounded-2xl text-sm font-semibold text-white transition hover:brightness-110 active:scale-95 disabled:opacity-60"
+                  style={{ background: "linear-gradient(135deg, #EF4444 0%, #DC2626 100%)", fontFamily: FONT_DISPLAY }}
+                >
+                  {cancelling ? "Membatalkan..." : "Ya, Batalkan"}
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Ambient glow */}
+      {/* ══════════════ AMBIENT GLOW BACKDROP (matches Home.jsx) ══════════════ */}
       <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-        <div className="absolute -top-32 -right-16 w-[480px] h-[480px] rounded-full opacity-20 blur-[130px]" style={{ background: "#93C5FD" }} />
-        <div className="absolute top-[55%] -left-20 w-[420px] h-[420px] rounded-full opacity-15 blur-[130px]" style={{ background: "#67E8F9" }} />
+        <div className="absolute -top-32 -right-16 w-[480px] h-[480px] rounded-full opacity-30 blur-[130px]"
+             style={{ background: "#93C5FD" }} />
+        <div className="absolute top-[55%] -left-20 w-[420px] h-[420px] rounded-full opacity-25 blur-[130px]"
+             style={{ background: "#67E8F9" }} />
+        <div className="absolute bottom-0 right-1/3 w-[320px] h-[320px] rounded-full opacity-18 blur-[120px]"
+             style={{ background: "#93C5FD" }} />
       </div>
 
-      <main className={`${SECTION_X} pt-8 pb-14`}>
+      {/* ══════════════════ HERO SECTION ══════════════════ */}
+      <section className={`${SECTION_X} pt-8 pb-6`}>
+        <div
+          className="rounded-3xl overflow-hidden relative"
+          style={{ background: GRAD_HERO_BG, border: `1px solid ${CLR_BORDER}` }}
+        >
+          <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full opacity-20 blur-3xl pointer-events-none"
+               style={{ background: "#2563EB" }} />
+          <div className="absolute -bottom-12 -left-12 w-48 h-48 rounded-full opacity-15 blur-3xl pointer-events-none"
+               style={{ background: "#06B6D4" }} />
 
-        {/* Hero Header */}
-        <div className="rounded-3xl overflow-hidden relative mb-6" style={{ background: GRAD_HERO_BG, border: `1px solid ${CLR_BORDER}` }}>
-          <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full opacity-20 blur-3xl pointer-events-none" style={{ background: "#2563EB" }} />
-          <div className="absolute -bottom-12 -left-12 w-48 h-48 rounded-full opacity-15 blur-3xl pointer-events-none" style={{ background: "#06B6D4" }} />
-          <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-6 sm:px-10 py-8 sm:py-10">
-            <div>
+          <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-5 px-6 sm:px-10 md:px-14 py-10 md:py-12">
+            <div className="min-w-0">
               <SectionLabel icon={<Zap size={11} />} text="Panel Teknisi" />
-              <h1 className="text-2xl sm:text-3xl leading-tight" style={{ fontFamily: FONT_DISPLAY, fontWeight: 800, color: CLR_TEXT }}>
+              <h1 className="text-3xl sm:text-4xl leading-[1.1]" style={{ fontFamily: FONT_DISPLAY, fontWeight: 800, color: CLR_TEXT }}>
                 Pekerjaan{" "}
                 <span style={{ backgroundImage: GRAD_PRIMARY, WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" }}>
                   Inspeksi
                 </span>
               </h1>
-              <p className="text-sm mt-2 max-w-md" style={{ color: CLR_MUTED }}>
+              <p className="text-[15px] mt-3 max-w-md leading-relaxed" style={{ color: CLR_MUTED }}>
                 Kelola penugasan inspeksi dan jadwal kamu di sini.
               </p>
             </div>
             <button
               onClick={fetchData}
               disabled={loading}
-              className="flex items-center justify-center gap-2 text-sm font-semibold rounded-2xl px-5 py-3 transition hover:brightness-110 active:scale-95 flex-shrink-0 disabled:opacity-60"
-              style={{ background: "#FFFFFF", border: `1.5px solid ${CLR_BORDER}`, color: CLR_ACCENT, fontFamily: FONT_DISPLAY }}
+              className="flex items-center justify-center gap-2 text-sm font-semibold rounded-2xl px-6 py-3.5 transition hover:brightness-110 active:scale-95 flex-shrink-0 disabled:opacity-60"
+              style={{ background: "#FFFFFF", border: `1.5px solid ${CLR_BORDER}`, color: CLR_ACCENT, fontFamily: FONT_DISPLAY, boxShadow: "0 2px 12px rgba(37,99,235,0.08)" }}
             >
               <RefreshCw size={16} className={loading ? "animate-spin" : ""} /> Refresh
             </button>
           </div>
         </div>
+      </section>
+
+      {/* ══════════════════ STATUS OVERVIEW ═════════════════ */}
+      <section className={`${SECTION_X} py-6`}>
 
         {/* Peringatan belum jadwal */}
         {!loading && noScheduleCount > 0 && (
           <div
-            className="flex items-start gap-3 rounded-2xl px-5 py-4 mb-6"
+            className="flex items-start gap-3 rounded-2xl px-5 py-4 mb-4"
             style={{ background: "rgba(234,179,8,0.08)", border: "1px solid rgba(234,179,8,0.30)" }}
           >
             <AlertCircle size={18} className="flex-shrink-0 mt-0.5" style={{ color: "#CA8A04" }} />
-            <p className="text-sm" style={{ color: "#78350F" }}>
+            <p className="text-sm leading-relaxed" style={{ color: "#78350F" }}>
               <strong>Kamu punya {noScheduleCount} job yang belum dijadwalkan.</strong> Hubungi seller dan input jadwal inspeksi secepatnya.
             </p>
           </div>
         )}
 
-        {/* Status Strip */}
+        {/* Stats row — same card/hover pattern as Home.jsx's STATS ROW */}
         {!loading && jobs.length > 0 && (
-          <div
-            className="grid grid-cols-3 rounded-2xl overflow-hidden mb-7"
-            style={{ background: "#FFFFFF", border: `1px solid ${CLR_BORDER_LT}`, boxShadow: "0 4px 24px rgba(37,99,235,0.06)" }}
-          >
+          <div className="grid grid-cols-3 gap-3">
             {[
-              { label: "Menunggu",    value: pendingCount,  color: "#D97706" },
-              { label: "Berlangsung", value: activeCount,   color: "#0891B2" },
-              { label: "Selesai",     value: doneCount,     color: "#059669" },
-            ].map((s, i) => (
+              { label: "Menunggu",    value: pendingCount,  icon: <AlertCircle size={18} />,   color: "#D97706" },
+              { label: "Berlangsung", value: activeCount,   icon: <Clock size={18} />,          color: "#0891B2" },
+              { label: "Selesai",     value: doneCount,     icon: <CheckCircle2 size={18} />,   color: "#059669" },
+            ].map(({ label, value, icon, color }) => (
               <div
-                key={s.label}
-                className="flex flex-col items-center justify-center gap-1 py-5"
-                style={{ borderLeft: i !== 0 ? `1px solid ${CLR_BORDER_LT}` : "none" }}
+                key={label}
+                className="flex flex-col items-center justify-center gap-2 px-6 py-7 rounded-2xl transition-all duration-300 hover:-translate-y-1"
+                style={{ background: "#FFFFFF", border: `1px solid ${CLR_BORDER_LT}`, boxShadow: "0 4px 24px rgba(37,99,235,0.06)" }}
               >
-                <p className="text-xl font-bold" style={{ fontFamily: FONT_DISPLAY, color: s.color }}>{s.value}</p>
-                <p className="text-[11px]" style={{ color: CLR_MUTED }}>{s.label}</p>
+                <span
+                  className="w-10 h-10 rounded-xl flex items-center justify-center text-white mb-1"
+                  style={{ background: color, boxShadow: `0 4px 14px ${color}40` }}
+                >
+                  {icon}
+                </span>
+                <p className="text-2xl font-bold leading-none" style={{ fontFamily: FONT_DISPLAY, color }}>
+                  {value}
+                </p>
+                <p className="text-xs text-center" style={{ color: CLR_MUTED }}>
+                  {label}
+                </p>
               </div>
             ))}
           </div>
         )}
+      </section>
 
-        {/* Content */}
+      {/* ══════════════════ DAFTAR PEKERJAAN ═════════════════ */}
+      <section className={`${SECTION_X} ${SECTION_Y} pt-2`}>
+
+        {!loading && jobs.length > 0 && (
+          <div className="flex items-end justify-between mb-7 pb-5 gap-4" style={{ borderBottom: `1px solid ${CLR_BORDER_LT}` }}>
+            <div>
+              <SectionLabel icon={<Sparkles size={11} />} text="Daftar Tugas" />
+              <h2 className="text-2xl" style={{ fontFamily: FONT_DISPLAY, fontWeight: 700, color: CLR_TEXT }}>
+                Pekerjaan Inspeksi ({jobs.length})
+              </h2>
+            </div>
+          </div>
+        )}
+
         {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             {[...Array(4)].map((_, i) => <CardSkeleton key={i} />)}
           </div>
         ) : jobs.length === 0 ? (
           <div
-            className="rounded-2xl p-14 text-center flex flex-col items-center"
-            style={{ background: "#FFFFFF", border: `1px solid ${CLR_BORDER}` }}
+            className="flex flex-col items-center justify-center py-20 rounded-2xl"
+            style={{ background: "linear-gradient(160deg, #FFFFFF 0%, #EFF6FF 100%)", border: `1px solid ${CLR_BORDER}` }}
           >
             <div
               className="w-16 h-16 rounded-2xl flex items-center justify-center mb-5"
@@ -667,36 +739,29 @@ export default function InspectionJobs() {
             <h3 className="text-xl mb-2" style={{ fontFamily: FONT_DISPLAY, fontWeight: 700, color: CLR_TEXT }}>
               Belum ada job inspeksi
             </h3>
-            <p className="text-sm max-w-xs" style={{ color: CLR_MUTED }}>
+            <p className="text-sm max-w-xs text-center" style={{ color: CLR_MUTED }}>
               Job baru akan muncul di sini setelah buyer memesan inspeksi.
             </p>
           </div>
         ) : (
-          <>
-            <div className="flex items-center gap-2 mb-4">
-              <Sparkles size={14} style={{ color: CLR_ACCENT }} />
-              <h2 className="text-sm font-semibold uppercase tracking-wide" style={{ color: CLR_MUTED }}>
-                Daftar Pekerjaan ({jobs.length})
-              </h2>
-            </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {jobs.map((job) => (
-                <JobCard
-                  key={job.id}
-                  job={job}
-                  onAccept={handleAccept}
-                  onReject={handleReject}
-                  onComplete={handleComplete}
-                  onCancel={(jobId) => setCancelModal({ open: true, jobId })}
-                  onChatSeller={handleChatSeller}
-                  onOpenSchedule={(jobId) => setScheduleModal({ open: true, jobId })}
-                  navigate={navigate}
-                />
-              ))}
-            </div>
-          </>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-stretch">
+            {jobs.map((job) => (
+              <JobCard
+                key={job.id}
+                job={job}
+                onAccept={handleAccept}
+                onReject={handleReject}
+                onComplete={handleComplete}
+                onCancel={(jobId) => setCancelModal({ open: true, jobId })}
+                onChatSeller={handleChatSeller}
+                onChatBuyer={handleChatBuyer}
+                onOpenSchedule={(jobId) => setScheduleModal({ open: true, jobId })}
+                navigate={navigate}
+              />
+            ))}
+          </div>
         )}
-      </main>
+      </section>
     </div>
   );
 }

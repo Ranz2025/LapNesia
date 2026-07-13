@@ -67,13 +67,56 @@ class AdminTechnicianController extends Controller
     {
         $users = User::when($request->role, fn($q) => $q->where('role', $request->role))
             ->when($request->status, fn($q) => $q->where('status', $request->status))
+            ->when($request->search, function ($q) use ($request) {
+                $q->where(function ($inner) use ($request) {
+                    $inner->where('name', 'like', '%' . $request->search . '%')
+                          ->orWhere('email', 'like', '%' . $request->search . '%');
+                });
+            })
             ->latest()
             ->paginate(20);
 
         return $this->successResponse([
-            'data' => UserResource::collection($users),
+            'data'  => UserResource::collection($users),
             'total' => $users->total(),
+            'per_page'     => $users->perPage(),
+            'current_page' => $users->currentPage(),
+            'last_page'    => $users->lastPage(),
         ]);
+    }
+
+    public function suspendUser(Request $request, string $id): JsonResponse
+    {
+        $user = User::findOrFail($id);
+
+        if ($user->role === 'admin' || $user->role === 'owner') {
+            return $this->errorResponse('Tidak dapat menangguhkan akun admin/owner.', 403);
+        }
+
+        if ($user->status === 'suspended') {
+            return $this->errorResponse('Pengguna sudah ditangguhkan.', 422);
+        }
+
+        $request->validate(['reason' => 'nullable|string|max:500']);
+
+        $user->update(['status' => 'suspended']);
+
+        return $this->successResponse(new UserResource($user), 'Pengguna berhasil ditangguhkan.');
+    }
+
+    public function activateUser(string $id): JsonResponse
+    {
+        $user = User::findOrFail($id);
+
+        if ($user->status !== 'suspended') {
+            return $this->errorResponse('Pengguna tidak dalam status ditangguhkan.', 422);
+        }
+
+        // Teknisi yang diverifikasi kembali ke verified, role lain ke active
+        $newStatus = $user->role === 'technician' ? 'verified' : 'active';
+        $user->update(['status' => $newStatus]);
+
+        return $this->successResponse(new UserResource($user), 'Pengguna berhasil diaktifkan kembali.');
     }
 
     public function certification(string $id): StreamedResponse|JsonResponse

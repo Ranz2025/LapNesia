@@ -120,10 +120,13 @@ export default function WithdrawalForm() {
               <CheckCircle2 size={28} className="text-white" />
             </div>
             <h2 className="text-xl mb-2 relative" style={{ fontFamily: FONT_DISPLAY, fontWeight: 800, color: CLR_TEXT }}>
-              Permintaan Terkirim!
+              Penarikan Berhasil! 🎉
             </h2>
-            <p className="text-sm mb-7 relative max-w-xs mx-auto" style={{ color: CLR_MUTED }}>
-              Permintaan penarikan dana kamu sedang diproses. Dana akan masuk dalam 1–3 hari kerja.
+            <p className="text-sm mb-2 relative max-w-xs mx-auto" style={{ color: CLR_MUTED }}>
+              Permintaan penarikan dana kamu telah <strong style={{ color: "#059669" }}>disetujui otomatis</strong> dan sedang diproses.
+            </p>
+            <p className="text-xs mb-7 relative max-w-xs mx-auto" style={{ color: "#94A3B8" }}>
+              Dana akan masuk ke rekening kamu dalam 1–3 hari kerja.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 relative">
               <button
@@ -215,7 +218,7 @@ export default function WithdrawalForm() {
             <span className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "rgba(8,145,178,0.10)", color: "#0891B2" }}>
               <Clock size={15} />
             </span>
-            <span className="text-[11px] leading-tight font-medium" style={{ color: CLR_MUTED }}>Diproses 1–3 hari kerja</span>
+            <span className="text-[11px] leading-tight font-medium" style={{ color: CLR_MUTED }}>Disetujui otomatis, cair 1–3 hari kerja</span>
           </div>
         </div>
 

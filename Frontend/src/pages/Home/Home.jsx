@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import {
   Search, ChevronRight, ShoppingBag, Star, CheckCircle,
   Shield, Heart, Truck, RotateCcw, Sparkles,
-  Quote, ArrowRight, TrendingUp, Users, Award, Zap, PlayCircle
+  Quote, ArrowRight, TrendingUp, Users, Award, Zap, PlayCircle,
+  FileText, BadgeCheck
 } from "lucide-react";
 import { getAllProducts } from "../../services/productService";
 import { CardSkeleton } from "../../components/ui/Skeleton";
@@ -110,15 +111,15 @@ const STATS = [
 ];
 
 const FEATURES = [
-  { icon: <Shield size={24} />,     title: "Inspeksi 25 Titik",   desc: "Setiap unit diperiksa menyeluruh oleh teknisi tersertifikasi sebelum dijual.", accent: "#2563EB" },
+  { icon: <Shield size={24} />,     title: "Teknisi Bersertifikat Resmi",   desc: "Setiap unit dapat diperiksa oleh teknisi yang tersertifikasi sebelum dibeli.", accent: "#2563EB" },
   { icon: <ShoppingBag size={24} />, title: "Escrow Aman",        desc: "Dana ditahan sampai kamu konfirmasi unit sesuai laporan inspeksi.",            accent: "#1D4ED8" },
-  { icon: <Truck size={24} />,      title: "Pengiriman Terlacak", desc: "Dikemas rapi dan dikirim dengan asuransi penuh ke seluruh Indonesia.",          accent: "#0891B2" },
-  { icon: <RotateCcw size={24} />,  title: "Garansi Mesin",       desc: "Klaim garansi mudah jika ditemukan masalah pada komponen utama.",               accent: "#06B6D4" },
+  { icon: <FileText size={24} />,    title: "Informasi Transparan", desc: "Setiap produk dilengkapi informasi kondisi yang lengkap dan transparan sebelum kamu membelinya.",          accent: "#0891B2" },
+  { icon: <BadgeCheck size={24} />, title: "Kualitas Terbaik",     desc: "Menyediakan laptop berkualitas dengan harga yang kompetitif dan transparan.",               accent: "#06B6D4" },
 ];
 
 const STEPS = [
   { num: "01", title: "Cari & Pilih",   desc: "Telusuri katalog dan bandingkan spesifikasi yang sesuai kebutuhanmu." },
-  { num: "02", title: "Cek Laporan",    desc: "Baca laporan inspeksi 25 titik sebelum memutuskan membeli." },
+  { num: "02", title: "Cek Laporan",    desc: "Baca laporan inspeksi oleh teknisi tersertifikasi sebelum memutuskan membeli." },
   { num: "03", title: "Bayar via Escrow", desc: "Dana aman ditahan sistem sampai unit kamu terima dan setujui." },
   { num: "04", title: "Terima & Nikmati", desc: "Konfirmasi unit sesuai laporan, dana baru diteruskan ke penjual." },
 ];
@@ -179,13 +180,13 @@ export default function Home() {
 
             {/* ── Left copy ── */}
             <div className="min-w-0 order-2 lg:order-1">
-              <SectionLabel icon={<Zap size={11} />} text="Platform laptop bekas terverifikasi" />
+              <SectionLabel icon={<Zap size={11} />} text="Platform jual beli laptop bekas dengan inspeksi" />
 
               <h1
                 className="text-4xl sm:text-5xl leading-[1.1] mb-5"
                 style={{ fontFamily: FONT_DISPLAY, fontWeight: 800, color: CLR_TEXT }}
               >
-                Temukan Laptop{" "}
+                Marketplace Laptop Bekas yang{" "}
                 <span
                   style={{
                     backgroundImage: GRAD_PRIMARY,
@@ -194,16 +195,13 @@ export default function Home() {
                     color: "transparent",
                   }}
                 >
-                  Impianmu
+                  Aman dan Terpercaya.
                 </span>
-                <br />
-                <span className="text-[#334155]">dengan Harga Terbaik.</span>
               </h1>
 
               <p className="text-[15px] leading-relaxed mb-8 max-w-[460px]" style={{ color: CLR_MUTED }}>
-                Setiap laptop dicek <strong style={{ color: CLR_TEXT }}>25 titik</strong> oleh teknisi
-                terverifikasi. Transaksi aman dengan <strong style={{ color: CLR_TEXT }}>escrow</strong> sampai
-                kamu konfirmasi unitnya sesuai laporan.
+                Belanja laptop bekas lebih aman dengan informasi produk yang transparan,
+                dan diinspeksi oleh <strong style={{ color: CLR_TEXT }}>teknisi tersertifikasi</strong>.
               </p>
 
               <form onSubmit={handleSearch} className="flex gap-2 mb-8 max-w-[460px]">
@@ -232,9 +230,9 @@ export default function Home() {
 
               <div className="flex flex-wrap gap-x-6 gap-y-3">
                 {[
-                  { icon: <Shield size={13} />, text: "Inspeksi 25 titik" },
+                  { icon: <Shield size={13} />, text: "Teknisi Tersertifikasi" },
                   { icon: <CheckCircle size={13} />, text: "Escrow aman" },
-                  { icon: <Award size={13} />, text: "Garansi mesin" },
+                  { icon: <Award size={13} />, text: "Laporan Inspeksi Digital" },
                 ].map(({ icon, text }) => (
                   <span key={text} className="flex items-center gap-1.5 text-[12px] font-medium" style={{ color: CLR_MUTED }}>
                     <span style={{ color: CLR_ACCENT }}>{icon}</span>
@@ -267,7 +265,6 @@ export default function Home() {
                   className="absolute top-4 left-4 rounded-xl px-3 py-1.5 text-xs font-bold"
                   style={{ background: GRAD_PRIMARY, color: "#0F172A", fontFamily: FONT_DISPLAY, boxShadow: "0 4px 12px rgba(37,99,235,0.35)" }}
                 >
-                  Rp 3.500.000
                 </div>
 
                 <div

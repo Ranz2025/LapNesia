@@ -268,7 +268,7 @@ export default function AddProduct() {
             </span>
           </h1>
           <p className="text-sm" style={{ color: CLR_MUTED }}>
-            Isi detail laptop kamu. Setiap listing wajib melewati inspeksi 25 titik sebelum tayang.
+            Isi detail laptop kamu. Setiap listing wajib melewati inspeksi oleh teknisi tersertifikasi sebelum tayang.
           </p>
         </div>
 

@@ -44,8 +44,8 @@ const Register = () => {
     try {
       const result = await register({ name: formData.name.trim(), email: formData.email.trim().toLowerCase(), phone: formData.phone.trim(), password: formData.password, password_confirmation: formData.password_confirmation, role: formData.role, address: '' });
       if (result.success && result.data) {
-        localStorage.setItem("token", result.data.access_token);
-        localStorage.setItem("user", JSON.stringify(result.data.user));
+        sessionStorage.setItem("token", result.data.access_token);
+        sessionStorage.setItem("user", JSON.stringify(result.data.user));
         setTimeout(() => navigate('/'), 500);
       } else { setError(result.message || 'Registrasi gagal'); }
     } catch (err) {

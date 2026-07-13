@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\V1\InspectionJobController;
 use App\Http\Controllers\Api\V1\InspectionPaymentController;
 use App\Http\Controllers\Api\V1\InspectionRatingController;
 use App\Http\Controllers\Api\V1\InspectionReportController;
+use App\Http\Controllers\Api\V1\InspectionReportPhotoController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Api\V1\OwnerDashboardController;
@@ -50,9 +51,6 @@ Route::prefix('v1')->group(function () {
     // Public ratings for a product
     Route::get('/ratings', [RatingController::class, 'index']);
 
-    // PDF laporan inspeksi — publik agar semua calon buyer bisa akses dari halaman produk
-    Route::get('/inspection-reports/{id}/pdf', [InspectionReportController::class, 'downloadPdf']);
-
     // ─── Webhook (no auth) ───────────────────────────────────────────────────
     Route::middleware('throttle:60,1')
         ->post('/payments/webhook', [PaymentController::class, 'webhook']);
@@ -80,10 +78,12 @@ Route::prefix('v1')->group(function () {
             Route::put('/inspection-jobs/{id}/accept',       [InspectionJobController::class, 'accept']);
             Route::put('/inspection-jobs/{id}/reject',       [InspectionJobController::class, 'reject']);
             Route::put('/inspection-jobs/{id}/complete',     [InspectionJobController::class, 'complete']);
-            Route::put('/inspection-jobs/{id}/cancel',       [InspectionJobController::class, 'cancel']);
             Route::put('/inspection-jobs/{id}/set-schedule', [InspectionJobController::class, 'setSchedule']);
             Route::post('/inspection-reports',           [InspectionReportController::class, 'store']);
             Route::get('/inspection-ratings/{jobId}',     [InspectionRatingController::class, 'show']);
+            // Foto bukti inspeksi
+            Route::post('/inspection-reports/{id}/photos',            [InspectionReportPhotoController::class, 'store']);
+            Route::delete('/inspection-reports/{id}/photos/{photoId}', [InspectionReportPhotoController::class, 'destroy']);
         });
 
         // Buyer
@@ -92,13 +92,17 @@ Route::prefix('v1')->group(function () {
             Route::post('/inspection-jobs/{job}/pay',    [InspectionPaymentController::class, 'pay']);
             Route::get('/inspection-payments/{id}',      [InspectionPaymentController::class, 'show']);
             Route::post('/inspection-jobs/{job}/rating',  [InspectionRatingController::class, 'store']);
-            Route::put('/inspection-jobs/{id}/cancel',   [InspectionJobController::class, 'cancel']);
             Route::post('/orders',                      [OrderController::class, 'store']);
             Route::put('/orders/{id}/cancel',           [OrderController::class, 'cancel']);
             Route::put('/orders/{id}/confirm-received', [OrderController::class, 'confirmReceived']);
             Route::put('/orders/{id}/shipping-address', [OrderController::class, 'updateShippingAddress']);
             Route::post('/orders/{order}/pay',          [PaymentController::class, 'pay']);
             Route::post('/ratings',                     [RatingController::class, 'store']);
+        });
+
+        // Cancel inspeksi — bisa dilakukan buyer ATAU teknisi (logic validasi ada di service)
+        Route::middleware('role:buyer,technician,admin')->group(function () {
+            Route::put('/inspection-jobs/{id}/cancel', [InspectionJobController::class, 'cancel']);
         });
 
         // Profile (any authenticated user)
@@ -113,6 +117,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/technician/jobs',           [InspectionJobController::class, 'index']);
         Route::get('/inspection-jobs/{id}',      [InspectionJobController::class, 'show']);
         Route::get('/inspection-reports/{id}',   [InspectionReportController::class, 'show']);
+        Route::get('/inspection-reports/{id}/pdf', [InspectionReportController::class, 'downloadPdf']);
         Route::get('/technician/certification', [ProfileController::class, 'certification']);
         Route::get('/admin/technicians/{id}/certification', [AdminTechnicianController::class, 'certification']);
         Route::get('/orders',    [OrderController::class, 'index']);
@@ -163,6 +168,8 @@ Route::prefix('v1')->group(function () {
 
             // User management
             Route::get('/users', [AdminTechnicianController::class, 'allUsers']);
+            Route::put('/users/{id}/suspend',  [AdminTechnicianController::class, 'suspendUser']);
+            Route::put('/users/{id}/activate', [AdminTechnicianController::class, 'activateUser']);
 
             // Returns management
             Route::get('/returns',                      [ReturnController::class, 'adminIndex']);

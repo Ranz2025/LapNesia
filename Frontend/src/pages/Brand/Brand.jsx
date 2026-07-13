@@ -104,7 +104,7 @@ function Brand() {
           </span>
         </h1>
         <p className="text-sm max-w-lg" style={{ color: CLR_MUTED }}>
-          Temukan laptop bekas dari berbagai brand terpercaya — setiap unit telah diinspeksi 25 titik.
+          Temukan laptop bekas dari berbagai brand terpercaya — setiap unit dapat diinspeksi oleh teknisi tersertifikasi.
         </p>
       </div>
 

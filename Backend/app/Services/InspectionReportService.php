@@ -55,6 +55,6 @@ class InspectionReportService
 
     public function find(string $id): ?InspectionReport
     {
-        return InspectionReport::with(['job.product', 'technician'])->find($id);
+        return InspectionReport::with(['job.product', 'technician', 'photos'])->find($id);
     }
 }

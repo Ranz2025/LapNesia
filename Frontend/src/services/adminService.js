@@ -12,5 +12,11 @@ export const rejectTechnician = (id, reason) =>
 export const getAllUsers = (params = {}) =>
   api.get("/v1/admin/users", { params }).then(r => r.data);
 
+export const suspendUser = (id, reason = "") =>
+  api.put(`/v1/admin/users/${id}/suspend`, { reason }).then(r => r.data);
+
+export const activateUser = (id) =>
+  api.put(`/v1/admin/users/${id}/activate`).then(r => r.data);
+
 export const getTechnicianCertification = (id) =>
   api.get(`/v1/admin/technicians/${id}/certification`, { responseType: "blob" }).then(r => r.data);

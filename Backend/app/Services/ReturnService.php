@@ -4,12 +4,16 @@ namespace App\Services;
 
 use App\Models\Order;
 use App\Models\ProductReturn;
+use App\Models\Wallet;
 use App\Notifications\ReturnRequestedNotification;
 use App\Notifications\ReturnStatusUpdatedNotification;
+use App\Services\WalletService;
 use Illuminate\Support\Facades\DB;
 
 class ReturnService
 {
+    public function __construct(protected WalletService $walletService) {}
+
     /** Buyer mengajukan return */
     public function request(Order $order, string $buyerId, string $reason): ProductReturn
     {
@@ -97,16 +101,56 @@ class ReturnService
             throw new \Exception('Pengembalian belum disetujui atau sudah diproses.');
         }
 
-        $return->update([
-            'status'       => 'completed',
-            'admin_notes'  => $adminNotes,
-            'completed_at' => now(),
-        ]);
+        $return->load('order');
+        $order = $return->order;
+
+        DB::transaction(function () use ($return, $order, $adminNotes) {
+            $return->update([
+                'status'       => 'completed',
+                'admin_notes'  => $adminNotes,
+                'completed_at' => now(),
+            ]);
+
+            // Update status order menjadi refunded
+            $order->update(['status' => 'refunded']);
+
+            $refundAmount = (float) $order->product_price - (float) $order->platform_fee;
+
+            // 1. Debit dari available_balance seller
+            $sellerWallet = Wallet::firstOrCreate(
+                ['user_id' => $return->seller_id],
+                ['available_balance' => 0, 'held_balance' => 0, 'frozen_balance' => 0]
+            );
+            $this->walletService->debit(
+                $sellerWallet,
+                $refundAmount,
+                'return_debit',
+                $return,
+                "Potongan saldo return untuk order {$order->order_number}"
+            );
+
+            // 2. Credit ke available_balance buyer
+            $buyerWallet = Wallet::firstOrCreate(
+                ['user_id' => $return->buyer_id],
+                ['available_balance' => 0, 'held_balance' => 0, 'frozen_balance' => 0]
+            );
+            $this->walletService->credit(
+                $buyerWallet,
+                $refundAmount,
+                'return_refund',
+                $return,
+                "Refund return untuk order {$order->order_number}"
+            );
+
+            // 3. Aktifkan kembali produk
+            $order->product()->update(['status' => 'active', 'stock' => \DB::raw('stock + 1')]);
+        });
 
         $return->load('order');
 
         // Notify buyer & seller
-        $return->buyer->notify(new ReturnStatusUpdatedNotification($return));
+        $return->buyer->notify(new ReturnStatusUpdatedNotification($return->fresh()));
+        $return->seller->notify(new ReturnStatusUpdatedNotification($return->fresh()));
 
         return $return->fresh('order', 'buyer', 'seller');
     }

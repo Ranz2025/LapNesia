@@ -2,7 +2,8 @@
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Calendar, Clock, User, FileText, AlertCircle, CheckCircle, XCircle, Download,
-  ChevronLeft, Gauge, ClipboardList, Wallet, ShieldCheck, Sparkles,
+  ChevronLeft, Gauge, ClipboardList, Wallet, ShieldCheck, Sparkles, Star,
+  Camera, ZoomIn, X as XIcon,
 } from "lucide-react";
 import Navbar from "../../components/layout/Navbar";
 import api from "../../services/api";
@@ -23,15 +24,15 @@ const CLR_ACCENT = "#2563EB";
 const SECTION_X = "max-w-5xl mx-auto px-4 sm:px-6 lg:px-8";
 
 const COMPONENT_LABELS = {
-  battery_status: "Baterai",
-  screen_status: "Layar",
-  keyboard_status: "Keyboard",
-  touchpad_status: "Touchpad",
-  port_status: "Port",
-  storage_status: "Storage",
-  ram_status: "RAM",
-  cpu_status: "CPU",
-  physical_status: "Fisik",
+  battery_status:  { label: "Baterai",  notesKey: "battery_notes" },
+  screen_status:   { label: "Layar",    notesKey: "screen_notes" },
+  keyboard_status: { label: "Keyboard", notesKey: "keyboard_notes" },
+  touchpad_status: { label: "Touchpad", notesKey: "touchpad_notes" },
+  port_status:     { label: "Port",     notesKey: "port_notes" },
+  storage_status:  { label: "Storage",  notesKey: "storage_notes" },
+  ram_status:      { label: "RAM",      notesKey: "ram_notes" },
+  cpu_status:      { label: "CPU",      notesKey: "cpu_notes" },
+  physical_status: { label: "Fisik",    notesKey: "physical_notes" },
 };
 
 const STATUS_STYLE = {
@@ -74,6 +75,7 @@ export default function InspectionDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [lightbox, setLightbox] = useState(null); // { url, caption, idx }
 
   useEffect(() => {
     api.get(`/v1/inspection-jobs/${id}`)
@@ -100,7 +102,9 @@ export default function InspectionDetail() {
   if (error || !job) return <div><Navbar /><div className={`${SECTION_X} py-20`}>{error || "Data tidak ditemukan."}</div></div>;
 
   const report = job.report;
-  const canRate = job.status === "completed";
+  // Hanya tampilkan form rating jika sudah selesai DAN belum pernah rating
+  const alreadyRated = !!(job.buyer_rating ?? job.rating?.rating);
+  const canRate = job.status === "completed" && !alreadyRated;
 
   return (
     <div style={{ fontFamily: FONT_BODY }}>
@@ -152,13 +156,28 @@ export default function InspectionDetail() {
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {Object.entries(COMPONENT_LABELS).map(([key, label]) => {
+              {Object.entries(COMPONENT_LABELS).map(([key, { label, notesKey }]) => {
                 const status = report[key];
-                const style = STATUS_STYLE[status] || { label: status, bg: "#F8FAFC", text: CLR_MUTED, border: CLR_BORDER_LT };
+                const notes  = report[notesKey];
+                const style  = STATUS_STYLE[status] || { label: status, bg: "#F8FAFC", text: CLR_MUTED, border: CLR_BORDER_LT };
                 return (
-                  <div key={key} className="flex flex-col gap-2 rounded-2xl p-3.5" style={{ background: "#FFFFFF", border: `1px solid ${CLR_BORDER_LT}` }}>
+                  <div
+                    key={key}
+                    className="flex flex-col gap-2 rounded-2xl p-3.5"
+                    style={{ background: "#FFFFFF", border: `1px solid ${notes ? style.border : CLR_BORDER_LT}` }}
+                  >
                     <span className="text-[11px] font-medium" style={{ color: CLR_MUTED }}>{label}</span>
-                    <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full self-start" style={{ background: style.bg, color: style.text, border: `1px solid ${style.border}` }}>{style.label}</span>
+                    <span
+                      className="text-[11px] font-semibold px-2.5 py-1 rounded-full self-start"
+                      style={{ background: style.bg, color: style.text, border: `1px solid ${style.border}` }}
+                    >
+                      {style.label}
+                    </span>
+                    {notes && (
+                      <p className="text-[11px] leading-relaxed mt-0.5" style={{ color: CLR_MUTED }}>
+                        {notes}
+                      </p>
+                    )}
                   </div>
                 );
               })}
@@ -169,6 +188,105 @@ export default function InspectionDetail() {
                 {report.notes}
               </p>
             )}
+
+            {/* ══ GALERI FOTO BUKTI INSPEKSI ══ */}
+            {report.photos && report.photos.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-4" style={{ borderTop: `1px solid ${CLR_BORDER_LT}`, paddingTop: "1.5rem" }}>
+                  <Camera size={16} style={{ color: CLR_ACCENT }} />
+                  <span className="text-sm font-semibold" style={{ color: CLR_TEXT, fontFamily: FONT_DISPLAY }}>
+                    Foto Bukti Inspeksi
+                  </span>
+                  <span
+                    className="text-[10px] font-semibold px-2 py-0.5 rounded-full ml-1"
+                    style={{ background: "rgba(37,99,235,0.10)", color: CLR_ACCENT }}
+                  >
+                    {report.photos.length} foto
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {report.photos.map((photo, idx) => (
+                    <button
+                      key={photo.id}
+                      type="button"
+                      onClick={() => setLightbox({ url: photo.url, caption: photo.caption, idx })}
+                      className="group relative rounded-2xl overflow-hidden aspect-video bg-slate-100 transition hover:shadow-lg hover:scale-[1.02]"
+                      style={{ border: `1.5px solid ${CLR_BORDER_LT}` }}
+                    >
+                      <img
+                        src={photo.url}
+                        alt={photo.caption || `Foto ${idx + 1}`}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                      {/* Overlay saat hover */}
+                      <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition"
+                        style={{ background: "rgba(15,23,42,0.55)" }}
+                      >
+                        <ZoomIn size={20} color="#fff" />
+                        <span className="text-[10px] font-semibold text-white">Lihat</span>
+                      </div>
+                      {/* Nomor urut */}
+                      <span
+                        className="absolute top-1.5 left-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+                        style={{ background: "rgba(15,23,42,0.60)", color: "#fff" }}
+                      >
+                        {idx + 1}
+                      </span>
+                      {/* Caption bawah */}
+                      {photo.caption && (
+                        <div
+                          className="absolute bottom-0 left-0 right-0 px-2 py-1.5"
+                          style={{ background: "rgba(15,23,42,0.65)" }}
+                        >
+                          <p className="text-[10px] text-white leading-tight line-clamp-1">{photo.caption}</p>
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ══ LIGHTBOX ══ */}
+        {lightbox && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            style={{ background: "rgba(0,0,0,0.85)" }}
+            onClick={() => setLightbox(null)}
+          >
+            <div
+              className="relative max-w-3xl w-full flex flex-col items-center gap-3"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Tombol tutup */}
+              <button
+                type="button"
+                onClick={() => setLightbox(null)}
+                className="absolute -top-10 right-0 w-9 h-9 rounded-full flex items-center justify-center transition hover:scale-110"
+                style={{ background: "rgba(255,255,255,0.15)", color: "#fff" }}
+              >
+                <XIcon size={18} />
+              </button>
+              {/* Gambar */}
+              <img
+                src={lightbox.url}
+                alt={lightbox.caption || `Foto ${lightbox.idx + 1}`}
+                className="w-full max-h-[75vh] object-contain rounded-2xl"
+                style={{ boxShadow: "0 20px 60px rgba(0,0,0,0.6)" }}
+              />
+              {/* Caption */}
+              {lightbox.caption && (
+                <p className="text-sm text-white text-center px-4" style={{ textShadow: "0 1px 3px rgba(0,0,0,0.6)" }}>
+                  {lightbox.caption}
+                </p>
+              )}
+              <span className="text-[11px] font-semibold" style={{ color: "rgba(255,255,255,0.50)" }}>
+                Foto {lightbox.idx + 1}
+              </span>
+            </div>
           </div>
         )}
 
@@ -212,6 +330,83 @@ export default function InspectionDetail() {
         {canRate && (
           <div className="mb-6">
             <InspectionRatingForm jobId={job.id} onSuccess={reload} />
+          </div>
+        )}
+
+        {/* Rating sudah diberikan — tampilkan ringkasan */}
+        {job.status === "completed" && alreadyRated && (
+          <div
+            className="rounded-3xl p-6 mb-6 space-y-4"
+            style={{ background: "#FFFFFF", border: `1px solid ${CLR_BORDER}` }}
+          >
+            <SectionLabel
+              icon={<Star size={11} />}
+              text="Rating Teknisi"
+              color="#16A34A"
+              bg="rgba(22,163,74,0.08)"
+              border="rgba(22,163,74,0.20)"
+            />
+            <div
+              className="rounded-2xl px-5 py-4 flex items-start gap-4 mt-3"
+              style={{ background: "rgba(22,163,74,0.05)", border: "1px solid rgba(22,163,74,0.18)" }}
+            >
+              {/* Skor + bintang */}
+              <div className="flex-shrink-0 text-center">
+                <p
+                  className="text-3xl font-extrabold leading-none"
+                  style={{ fontFamily: FONT_DISPLAY, color: "#16A34A" }}
+                >
+                  {job.buyer_rating ?? job.rating?.rating}
+                </p>
+                <p className="text-[10px] font-semibold uppercase tracking-widest mt-1" style={{ color: "#15803D" }}>
+                  / 5
+                </p>
+                <div className="flex gap-0.5 mt-2 justify-center">
+                  {[1, 2, 3, 4, 5].map((n) => {
+                    const score = job.buyer_rating ?? job.rating?.rating ?? 0;
+                    return (
+                      <Star
+                        key={n}
+                        size={14}
+                        style={
+                          n <= score
+                            ? { fill: "#F59E0B", color: "#F59E0B" }
+                            : { fill: "rgba(148,163,184,0.3)", color: "#CBD5E1" }
+                        }
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="w-px self-stretch" style={{ background: "rgba(22,163,74,0.2)" }} />
+
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <CheckCircle size={15} style={{ color: "#16A34A" }} />
+                  <p className="text-sm font-semibold" style={{ color: "#15803D" }}>
+                    Rating sudah dikirim
+                  </p>
+                </div>
+                {job.rating?.review ? (
+                  <p className="text-sm leading-relaxed mt-1" style={{ color: CLR_MUTED }}>
+                    "{job.rating.review}"
+                  </p>
+                ) : (
+                  <p className="text-xs mt-1" style={{ color: CLR_SUBTLE }}>
+                    Tidak ada ulasan tertulis.
+                  </p>
+                )}
+                {job.rating?.created_at && (
+                  <p className="text-[11px] mt-2" style={{ color: CLR_SUBTLE }}>
+                    Dikirim pada{" "}
+                    {new Date(job.rating.created_at).toLocaleDateString("id-ID", {
+                      day: "numeric", month: "long", year: "numeric",
+                    })}
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
         )}
       </main>

@@ -7,6 +7,29 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (DB::getDriverName() === 'sqlite') {
+            // SQLite update join syntax
+            DB::statement("
+                UPDATE technician_profiles
+                SET total_inspections = COALESCE((
+                    SELECT COUNT(*)
+                    FROM inspection_jobs
+                    WHERE inspection_jobs.technician_id = technician_profiles.user_id
+                      AND inspection_jobs.status = 'completed'
+                ), 0)
+            ");
+
+            DB::statement("
+                UPDATE technician_profiles
+                SET rating_avg = COALESCE((
+                    SELECT ROUND(AVG(rating), 2)
+                    FROM inspection_ratings
+                    WHERE inspection_ratings.technician_id = technician_profiles.user_id
+                ), 0.00)
+            ");
+            return;
+        }
+
         // Update total_inspections dari inspection_jobs yang completed
         DB::statement("
             UPDATE technician_profiles tp

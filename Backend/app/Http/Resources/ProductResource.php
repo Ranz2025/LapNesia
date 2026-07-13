@@ -9,14 +9,16 @@ class ProductResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
-        // Latest published inspection report
-        $latestReport = $this->inspectionJobs()
-            ->with('report')
-            ->get()
-            ->pluck('report')
-            ->filter()
-            ->sortByDesc('published_at')
-            ->first();
+        // Hanya ambil latest inspection report jika relasi sudah di-eager-load
+        // (mencegah N+1 query saat dipakai di halaman listing/katalog)
+        $latestReport = null;
+        if ($this->relationLoaded('inspectionJobs')) {
+            $latestReport = $this->inspectionJobs
+                ->pluck('report')
+                ->filter()
+                ->sortByDesc('published_at')
+                ->first();
+        }
 
         return [
             'id'          => $this->id,

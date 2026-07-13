@@ -9,7 +9,7 @@ class WithdrawalPolicy
 {
     public function viewAny(User $user): bool
     {
-        return in_array($user->role, ['owner', 'admin', 'seller', 'technician']);
+        return in_array($user->role, ['owner', 'admin', 'seller', 'technician', 'buyer']);
     }
 
     public function view(User $user, Withdrawal $withdrawal): bool
@@ -23,7 +23,7 @@ class WithdrawalPolicy
 
     public function create(User $user): bool
     {
-        return in_array($user->role, ['seller', 'technician']);
+        return in_array($user->role, ['seller', 'technician', 'buyer']);
     }
 
     public function approve(User $user): bool

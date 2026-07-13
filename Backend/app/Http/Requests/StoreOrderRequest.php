@@ -16,7 +16,7 @@ class StoreOrderRequest extends FormRequest
         return [
             'product_id'       => 'required|exists:products,id',
             'notes'            => 'nullable|string|max:1000',
-            'shipping_address' => 'required|string|max:500',
+            'shipping_address' => 'nullable|string|max:500',
         ];
     }
 }

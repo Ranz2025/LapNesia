@@ -18,6 +18,19 @@ class ProductImage extends Model
         'is_primary' => 'boolean',
     ];
 
+    /**
+     * Kembalikan full URL jika image_url adalah path relatif (bukan http/https).
+     * Ini memastikan foto lokal di storage/app/public/products/ bisa diakses frontend.
+     */
+    public function getImageUrlAttribute(string $value): string
+    {
+        if (str_starts_with($value, 'http://') || str_starts_with($value, 'https://')) {
+            return $value;
+        }
+
+        return url('storage/' . $value);
+    }
+
     public function product()
     {
         return $this->belongsTo(Product::class);

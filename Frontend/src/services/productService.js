@@ -15,16 +15,9 @@ export const getProducts = async (filters = {}) => {
 };
 
 export const getAllProducts = async (filters = {}) => {
-  const firstPage = await getProducts({ ...filters, page: 1 });
-  const all = [...(firstPage.data || [])];
-  const totalPages = Number(firstPage.meta?.total_pages || firstPage.meta?.last_page || 1);
-
-  for (let page = 2; page <= totalPages; page += 1) {
-    const pageRes = await getProducts({ ...filters, page });
-    all.push(...(pageRes.data || []));
-  }
-
-  return { ...firstPage, data: all, meta: { ...firstPage.meta, total_pages: totalPages } };
+  // Per-page sudah 50 di backend, satu request cukup untuk semua produk
+  const res = await getProducts({ ...filters, page: 1 });
+  return res;
 };
 
 export const getProductBySlug = (slug) =>

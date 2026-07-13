@@ -169,7 +169,7 @@ export default function Technicians() {
                 </span>
               </h1>
               <p className="text-sm max-w-md" style={{ color: CLR_MUTED }}>
-                Pilih teknisi profesional terverifikasi untuk inspeksi 25 titik pada laptop Anda.
+                Pilih teknisi tersertifikasi untuk inspeksi menyeluruh pada laptop Anda.
               </p>
             </div>
 
@@ -253,8 +253,8 @@ export default function Technicians() {
                 <Sparkles size={15} />
               </span>
               <div>
-                <p className="text-sm font-bold" style={{ fontFamily: FONT_DISPLAY, color: CLR_TEXT }}>25 Titik</p>
-                <p className="text-[11px]" style={{ color: CLR_MUTED }}>Poin Inspeksi</p>
+                <p className="text-sm font-bold" style={{ fontFamily: FONT_DISPLAY, color: CLR_TEXT }}>Tersertifikasi</p>
+                <p className="text-[11px]" style={{ color: CLR_MUTED }}>Teknisi</p>
               </div>
             </div>
             {search && (

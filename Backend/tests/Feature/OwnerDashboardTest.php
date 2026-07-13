@@ -45,7 +45,8 @@ class OwnerDashboardTest extends TestCase
                         'pending_withdrawals',
                     ],
                     'charts' => [
-                        'revenue',
+                        'daily_income',
+                        'cumulative_revenue',
                         'user_growth',
                     ],
                     'period',

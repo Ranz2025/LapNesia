@@ -17,7 +17,7 @@ class RatingController extends Controller
     public function store(Request $request): JsonResponse
     {
         $request->validate([
-            'order_id'          => 'required|uuid|exists:orders,id',
+            'order_id'          => 'required|integer|exists:orders,id',
             'seller_rating'     => 'required|integer|min:1|max:5',
             'seller_review'     => 'nullable|string|max:500',
             'product_rating'    => 'nullable|integer|min:1|max:5',
@@ -68,7 +68,7 @@ class RatingController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $request->validate(['product_id' => 'nullable|uuid|exists:products,id']);
+        $request->validate(['product_id' => 'nullable|integer|exists:products,id']);
 
         $query = Rating::with(['order.product', 'order.buyer:id,name,profile_photo_url'])
             ->when($request->product_id, function ($q) use ($request) {

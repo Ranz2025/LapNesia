@@ -88,6 +88,8 @@ function Notifications() {
         prev.map((n) => n.id === id ? { ...n, read_at: new Date().toISOString() } : n)
       );
       setUnreadCount((c) => Math.max(0, c - 1));
+      // Beritahu Navbar agar badge langsung berkurang
+      window.dispatchEvent(new CustomEvent("notif:read", { detail: { markAll: false } }));
     } catch {
       toast.error("Gagal menandai notifikasi.");
     }
@@ -99,6 +101,8 @@ function Notifications() {
       toast.success("Semua notifikasi ditandai dibaca.");
       setNotifications((prev) => prev.map((n) => ({ ...n, read_at: n.read_at || new Date().toISOString() })));
       setUnreadCount(0);
+      // Beritahu Navbar agar badge langsung hilang
+      window.dispatchEvent(new CustomEvent("notif:read", { detail: { markAll: true } }));
     } catch {
       toast.error("Gagal menandai semua sebagai dibaca.");
     }

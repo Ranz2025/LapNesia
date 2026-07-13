@@ -1,13 +1,15 @@
-﻿import { useState, useMemo } from "react";
+﻿import { useState, useMemo, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft, ClipboardCheck, Battery, Monitor, Keyboard, Square,
   Usb, HardDrive, MemoryStick, Cpu, Box, Gauge, ThumbsUp,
-  AlertTriangle, ThumbsDown, FileText, Send, Zap
+  AlertTriangle, ThumbsDown, FileText, Send, Zap, Camera, X, Upload,
+  ImageIcon
 } from "lucide-react";
 import Navbar from "../../components/layout/Navbar";
 import { toast } from "../../components/ui/Toast";
 import api from "../../services/api";
+import { uploadInspectionPhotos } from "../../services/inspectionService";
 
 /* ─── DESIGN TOKENS (selaras dengan halaman lain) ──────────────── */
 const FONT_DISPLAY = "'Baloo 2', sans-serif";
@@ -32,15 +34,15 @@ const STATUS_OPTIONS = [
 ];
 
 const COMPONENTS = [
-  { key: "battery_status",  label: "Baterai",  icon: <Battery size={16} /> },
-  { key: "screen_status",   label: "Layar",    icon: <Monitor size={16} /> },
-  { key: "keyboard_status", label: "Keyboard", icon: <Keyboard size={16} /> },
-  { key: "touchpad_status", label: "Touchpad", icon: <Square size={16} /> },
-  { key: "port_status",     label: "Port",     icon: <Usb size={16} /> },
-  { key: "storage_status",  label: "Storage",  icon: <HardDrive size={16} /> },
-  { key: "ram_status",      label: "RAM",      icon: <MemoryStick size={16} /> },
-  { key: "cpu_status",      label: "CPU",      icon: <Cpu size={16} /> },
-  { key: "physical_status", label: "Fisik",    icon: <Box size={16} /> },
+  { key: "battery_status",  notesKey: "battery_notes",  label: "Baterai",  icon: <Battery size={16} />,    placeholder: "Contoh: Kapasitas tersisa 78%, tidak mengembang" },
+  { key: "screen_status",   notesKey: "screen_notes",   label: "Layar",    icon: <Monitor size={16} />,    placeholder: "Contoh: Backlight merata, tidak ada dead pixel" },
+  { key: "keyboard_status", notesKey: "keyboard_notes", label: "Keyboard", icon: <Keyboard size={16} />,   placeholder: "Contoh: Semua tombol responsif, tidak ada yang macet" },
+  { key: "touchpad_status", notesKey: "touchpad_notes", label: "Touchpad", icon: <Square size={16} />,     placeholder: "Contoh: Klik kiri/kanan normal, gestur berfungsi" },
+  { key: "port_status",     notesKey: "port_notes",     label: "Port",     icon: <Usb size={16} />,        placeholder: "Contoh: USB-A ×2 dan HDMI berfungsi, USB-C longgar" },
+  { key: "storage_status",  notesKey: "storage_notes",  label: "Storage",  icon: <HardDrive size={16} />,  placeholder: "Contoh: SSD 512GB, health 95%" },
+  { key: "ram_status",      notesKey: "ram_notes",      label: "RAM",      icon: <MemoryStick size={16} />, placeholder: "Contoh: 8GB DDR4, terpasang di slot 1" },
+  { key: "cpu_status",      notesKey: "cpu_notes",      label: "CPU",      icon: <Cpu size={16} />,        placeholder: "Contoh: Suhu idle 45°C, tidak ada throttling" },
+  { key: "physical_status", notesKey: "physical_notes", label: "Fisik",    icon: <Box size={16} />,        placeholder: "Contoh: Goresan minor di palm rest kanan" },
 ];
 
 const RECOMMENDATIONS = [
@@ -51,6 +53,7 @@ const RECOMMENDATIONS = [
 
 const defaultForm = () => ({
   ...Object.fromEntries(COMPONENTS.map(c => [c.key, "good"])),
+  ...Object.fromEntries(COMPONENTS.map(c => [c.notesKey, ""])),
   overall_score: "",
   recommendation: "recommended",
   notes: "",
@@ -69,37 +72,77 @@ function SectionLabel({ icon, text }) {
 }
 
 /* ─── COMPONENT STATUS ROW ──────────────────────────────────────── */
-function ComponentRow({ icon, label, value, onChange }) {
+function ComponentRow({ icon, label, placeholder, value, notes, onStatusChange, onNotesChange }) {
+  const activeOpt = STATUS_OPTIONS.find(o => o.value === value) || STATUS_OPTIONS[0];
+
   return (
     <div
-      className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl"
-      style={{ background: "#F8FAFC", border: `1px solid ${CLR_BORDER_LT}` }}
+      className="rounded-2xl overflow-hidden"
+      style={{ border: `1.5px solid ${activeOpt.border}`, background: "#FFFFFF" }}
     >
-      <div className="flex items-center gap-2.5">
-        <span className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "rgba(37,99,235,0.10)", color: CLR_ACCENT }}>
-          {icon}
-        </span>
-        <span className="text-sm font-medium" style={{ color: CLR_TEXT }}>{label}</span>
+      {/* Top row: icon + label + toggle buttons */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3.5"
+        style={{ background: activeOpt.bg }}
+      >
+        <div className="flex items-center gap-2.5">
+          <span
+            className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+            style={{ background: "rgba(255,255,255,0.70)", color: activeOpt.color }}
+          >
+            {icon}
+          </span>
+          <span className="text-sm font-semibold" style={{ color: CLR_TEXT }}>{label}</span>
+          {/* Chip status aktif */}
+          <span
+            className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold"
+            style={{ background: "rgba(255,255,255,0.80)", color: activeOpt.color }}
+          >
+            {activeOpt.icon} {activeOpt.label}
+          </span>
+        </div>
+        <div className="flex gap-1.5">
+          {STATUS_OPTIONS.map((opt) => {
+            const active = value === opt.value;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => onStatusChange(opt.value)}
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition"
+                style={{
+                  background: active ? "#FFFFFF" : "rgba(255,255,255,0.45)",
+                  color:      active ? opt.color  : CLR_SUBTLE,
+                  border:     `1.5px solid ${active ? opt.border : "transparent"}`,
+                  boxShadow:  active ? "0 2px 6px rgba(0,0,0,0.10)" : "none",
+                }}
+              >
+                {opt.icon} <span className="hidden sm:inline">{opt.label}</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
-      <div className="flex gap-1.5">
-        {STATUS_OPTIONS.map((opt) => {
-          const active = value === opt.value;
-          return (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => onChange(opt.value)}
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition"
-              style={{
-                background: active ? opt.bg : "#FFFFFF",
-                color: active ? opt.color : CLR_SUBTLE,
-                border: `1.5px solid ${active ? opt.border : CLR_BORDER_LT}`,
-              }}
-            >
-              {opt.icon} <span className="hidden sm:inline">{opt.label}</span>
-            </button>
-          );
-        })}
+
+      {/* Notes textarea */}
+      <div className="px-4 py-3" style={{ borderTop: `1px solid ${activeOpt.border}` }}>
+        <textarea
+          rows={2}
+          maxLength={1000}
+          placeholder={placeholder}
+          value={notes}
+          onChange={(e) => onNotesChange(e.target.value)}
+          className="w-full outline-none rounded-xl px-3 py-2 text-xs resize-none transition placeholder:text-[#94A3B8]"
+          style={{
+            background: "#F8FAFC",
+            border: `1px solid ${CLR_BORDER_LT}`,
+            color: CLR_TEXT,
+          }}
+          onFocus={(e) => (e.currentTarget.style.borderColor = activeOpt.color)}
+          onBlur={(e)  => (e.currentTarget.style.borderColor = CLR_BORDER_LT)}
+        />
+        <p className="text-right text-[10px] mt-1" style={{ color: CLR_SUBTLE }}>
+          {(notes || "").length}/1000
+        </p>
       </div>
     </div>
   );
@@ -112,6 +155,12 @@ export default function SubmitReport() {
   const [form, setForm] = useState(defaultForm());
   const [submitting, setSubmitting] = useState(false);
 
+  // ─── State foto ──────────────────────────────────────────────
+  const [photoFiles, setPhotoFiles] = useState([]); // { file, preview, caption }
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploading, setUploading] = useState(false);
+  const photoInputRef = useRef(null);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm(f => ({ ...f, [name]: value }));
@@ -121,12 +170,71 @@ export default function SubmitReport() {
     setForm(f => ({ ...f, [key]: value }));
   };
 
+  // ─── Pilih foto baru ─────────────────────────────────────────
+  const handleSelectPhotos = (e) => {
+    const selected = Array.from(e.target.files || []);
+    if (!selected.length) return;
+
+    const remaining = 20 - photoFiles.length;
+    if (remaining <= 0) {
+      toast.error("Maksimal 20 foto per laporan.");
+      return;
+    }
+
+    const toAdd = selected.slice(0, remaining).map((file) => ({
+      file,
+      preview: URL.createObjectURL(file),
+      caption: "",
+    }));
+
+    setPhotoFiles(prev => [...prev, ...toAdd]);
+    // Reset input agar bisa pilih file yang sama lagi
+    e.target.value = "";
+  };
+
+  // ─── Hapus foto dari daftar (sebelum submit) ─────────────────
+  const handleRemovePhoto = (idx) => {
+    setPhotoFiles(prev => {
+      URL.revokeObjectURL(prev[idx].preview);
+      return prev.filter((_, i) => i !== idx);
+    });
+  };
+
+  // ─── Update caption ──────────────────────────────────────────
+  const handleCaption = (idx, value) => {
+    setPhotoFiles(prev => prev.map((p, i) => i === idx ? { ...p, caption: value } : p));
+  };
+
+  // ─── Submit laporan lalu upload foto ────────────────────────
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
     try {
-      await api.post("/v1/inspection-reports", { ...form, job_id: jobId, overall_score: Number(form.overall_score) });
-      toast.success("Laporan berhasil dikirim!");
+      const res = await api.post("/v1/inspection-reports", {
+        ...form,
+        job_id: jobId,
+        overall_score: Number(form.overall_score),
+      });
+
+      const reportId = res.data?.data?.id ?? res.data?.id;
+
+      // Upload foto jika ada
+      if (photoFiles.length > 0 && reportId) {
+        setUploading(true);
+        try {
+          const files = photoFiles.map(p => p.file);
+          const captions = photoFiles.map(p => p.caption);
+          await uploadInspectionPhotos(reportId, files, captions, (pct) => setUploadProgress(pct));
+          toast.success(`Laporan + ${photoFiles.length} foto berhasil dikirim!`);
+        } catch {
+          toast.success("Laporan berhasil dikirim (foto gagal diupload, coba lagi dari detail laporan).");
+        } finally {
+          setUploading(false);
+        }
+      } else {
+        toast.success("Laporan berhasil dikirim!");
+      }
+
       setTimeout(() => navigate("/technician/jobs"), 1500);
     } catch (err) {
       toast.error(err.response?.data?.message || "Gagal mengirim laporan.");
@@ -216,13 +324,16 @@ export default function SubmitReport() {
             </div>
 
             <div className="space-y-2.5">
-              {COMPONENTS.map(({ key, label, icon }) => (
+              {COMPONENTS.map(({ key, notesKey, label, icon, placeholder }) => (
                 <ComponentRow
                   key={key}
                   icon={icon}
                   label={label}
+                  placeholder={placeholder}
                   value={form[key]}
-                  onChange={(v) => setComponentStatus(key, v)}
+                  notes={form[notesKey]}
+                  onStatusChange={(v) => setComponentStatus(key, v)}
+                  onNotesChange={(v) => setForm(f => ({ ...f, [notesKey]: v }))}
                 />
               ))}
             </div>
@@ -316,14 +427,140 @@ export default function SubmitReport() {
             />
           </div>
 
+          {/* ══════════════ FOTO BUKTI INSPEKSI ══════════════ */}
+          <div
+            className="rounded-2xl p-5 sm:p-7"
+            style={{ background: "#FFFFFF", border: `1px solid ${CLR_BORDER_LT}`, boxShadow: "0 2px 10px rgba(0,0,0,0.04)" }}
+          >
+            <h2 className="text-base font-semibold mb-1 flex items-center gap-2" style={{ color: CLR_TEXT, fontFamily: FONT_DISPLAY }}>
+              <Camera size={17} style={{ color: CLR_ACCENT }} /> Foto Bukti Inspeksi
+            </h2>
+            <p className="text-[12px] mb-4" style={{ color: CLR_MUTED }}>
+              Opsional — tambahkan hingga 20 foto bukti pemeriksaan (max 5 MB per foto).
+            </p>
+
+            {/* Drop zone / tombol pilih foto */}
+            <button
+              type="button"
+              onClick={() => photoInputRef.current?.click()}
+              disabled={photoFiles.length >= 20}
+              className="w-full flex flex-col items-center justify-center gap-2 py-7 rounded-2xl border-2 border-dashed transition hover:brightness-95 disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{ borderColor: CLR_BORDER, background: "#F8FAFC" }}
+            >
+              <span
+                className="w-12 h-12 rounded-2xl flex items-center justify-center"
+                style={{ background: "rgba(37,99,235,0.08)", color: CLR_ACCENT }}
+              >
+                <ImageIcon size={22} />
+              </span>
+              <span className="text-sm font-semibold" style={{ color: CLR_ACCENT }}>
+                {photoFiles.length >= 20 ? "Batas 20 foto tercapai" : "Klik untuk pilih foto"}
+              </span>
+              <span className="text-[11px]" style={{ color: CLR_SUBTLE }}>
+                JPG, PNG, WEBP · Maks 5 MB per file · {photoFiles.length}/20 foto
+              </span>
+            </button>
+            <input
+              ref={photoInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              multiple
+              className="hidden"
+              onChange={handleSelectPhotos}
+            />
+
+            {/* Grid preview foto */}
+            {photoFiles.length > 0 && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-5">
+                {photoFiles.map((item, idx) => (
+                  <div
+                    key={idx}
+                    className="relative rounded-2xl overflow-hidden flex flex-col"
+                    style={{ border: `1.5px solid ${CLR_BORDER_LT}`, background: "#F8FAFC" }}
+                  >
+                    {/* Thumbnail */}
+                    <div className="relative aspect-video overflow-hidden bg-slate-100">
+                      <img
+                        src={item.preview}
+                        alt={`foto-${idx + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                      {/* Tombol hapus */}
+                      <button
+                        type="button"
+                        onClick={() => handleRemovePhoto(idx)}
+                        className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full flex items-center justify-center transition hover:scale-110"
+                        style={{ background: "rgba(220,38,38,0.85)", color: "#fff" }}
+                        title="Hapus foto"
+                      >
+                        <X size={12} />
+                      </button>
+                      {/* Nomor urut */}
+                      <span
+                        className="absolute bottom-1.5 left-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+                        style={{ background: "rgba(15,23,42,0.65)", color: "#fff" }}
+                      >
+                        {idx + 1}
+                      </span>
+                    </div>
+                    {/* Caption */}
+                    <div className="p-2">
+                      <input
+                        type="text"
+                        maxLength={200}
+                        placeholder="Keterangan foto (opsional)"
+                        value={item.caption}
+                        onChange={(e) => handleCaption(idx, e.target.value)}
+                        className="w-full outline-none rounded-lg px-2.5 py-1.5 text-[11px] placeholder:text-[#94A3B8] transition"
+                        style={{
+                          background: "#FFFFFF",
+                          border: `1px solid ${CLR_BORDER_LT}`,
+                          color: CLR_TEXT,
+                        }}
+                        onFocus={(e) => (e.currentTarget.style.borderColor = CLR_ACCENT)}
+                        onBlur={(e) => (e.currentTarget.style.borderColor = CLR_BORDER_LT)}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Progress bar upload */}
+            {uploading && (
+              <div className="mt-4">
+                <div className="flex items-center justify-between text-[11px] mb-1.5" style={{ color: CLR_MUTED }}>
+                  <span className="flex items-center gap-1.5">
+                    <Upload size={12} className="animate-bounce" style={{ color: CLR_ACCENT }} />
+                    Mengupload foto...
+                  </span>
+                  <span className="font-semibold" style={{ color: CLR_ACCENT }}>{uploadProgress}%</span>
+                </div>
+                <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: "rgba(37,99,235,0.12)" }}>
+                  <div
+                    className="h-full rounded-full transition-all duration-300"
+                    style={{ width: `${uploadProgress}%`, background: GRAD_PRIMARY }}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
           <button
             type="submit"
-            disabled={submitting}
+            disabled={submitting || uploading}
             className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl text-[#0F172A] font-semibold transition hover:brightness-110 active:scale-95 disabled:opacity-50"
             style={{ background: GRAD_PRIMARY, fontFamily: FONT_DISPLAY, boxShadow: "0 6px 24px rgba(37,99,235,0.30)" }}
           >
             {submitting ? (
-              "Mengirim..."
+              uploading ? (
+                <span className="flex items-center gap-2">
+                  <Upload size={17} className="animate-bounce" />
+                  Mengupload foto... {uploadProgress}%
+                </span>
+              ) : (
+                "Mengirim laporan..."
+              )
             ) : (
               <>
                 <Send size={17} /> Kirim Laporan

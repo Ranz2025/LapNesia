@@ -201,24 +201,24 @@ export default function TechnicianDashboard() {
         {/* ══════════════ HERO HEADER ══════════════ */}
         <div
           className="rounded-3xl overflow-hidden relative mb-6"
-          style={{ background: GRAD_HERO_BG, border: `1px solid ${CLR_BORDER}` }}
+          style={{ background: GRAD_PRIMARY, boxShadow: "0 16px 40px -16px rgba(37,99,235,0.45)" }}
         >
-          <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full opacity-20 blur-3xl pointer-events-none" style={{ background: "#2563EB" }} />
-          <div className="absolute -bottom-12 -left-12 w-48 h-48 rounded-full opacity-15 blur-3xl pointer-events-none" style={{ background: "#06B6D4" }} />
+          <div className="absolute -top-16 -right-10 w-56 h-56 rounded-full opacity-20 blur-3xl pointer-events-none" style={{ background: "#FFFFFF" }} />
+          <div className="absolute -bottom-14 -left-10 w-48 h-48 rounded-full opacity-15 blur-3xl pointer-events-none" style={{ background: "#FFFFFF" }} />
 
           <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-6 sm:px-10 py-8 sm:py-10">
             <div>
-              <SectionLabel icon={<Zap size={11} />} text="Panel Teknisi" />
-              <h1
-                className="text-2xl sm:text-3xl leading-tight"
-                style={{ fontFamily: FONT_DISPLAY, fontWeight: 800, color: CLR_TEXT }}
+              <span
+                className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-widest px-3 py-1 rounded-full font-semibold mb-3"
+                style={{ color: "#FFFFFF", background: "rgba(255,255,255,0.18)", border: "1px solid rgba(255,255,255,0.30)" }}
               >
-                Dashboard{" "}
-                <span style={{ backgroundImage: GRAD_PRIMARY, WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" }}>
-                  Teknisi
-                </span>
+                <Zap size={11} /> Panel Teknisi
+              </span>
+              <h1 className="text-2xl sm:text-3xl leading-tight" style={{ fontFamily: FONT_DISPLAY, fontWeight: 800 }}>
+                <span className="text-white">Dashboard </span>
+                <span style={{ color: "#67E8F9" }}>Teknisi</span>
               </h1>
-              <p className="text-sm mt-2 max-w-md" style={{ color: CLR_MUTED }}>
+              <p className="text-sm mt-2 max-w-md" style={{ color: "rgba(255,255,255,0.85)" }}>
                 Pantau pekerjaan inspeksi dan saldo kamu dalam satu tempat.
               </p>
             </div>
@@ -226,7 +226,7 @@ export default function TechnicianDashboard() {
               onClick={fetchData}
               disabled={loading}
               className="flex items-center justify-center gap-2 text-sm font-semibold rounded-2xl px-5 py-3 transition hover:brightness-110 active:scale-95 flex-shrink-0 disabled:opacity-60"
-              style={{ background: "#FFFFFF", border: `1.5px solid ${CLR_BORDER}`, color: CLR_ACCENT, fontFamily: FONT_DISPLAY }}
+              style={{ background: "rgba(255,255,255,0.18)", border: "1px solid rgba(255,255,255,0.30)", color: "#FFFFFF", fontFamily: FONT_DISPLAY }}
             >
               <RefreshCw size={16} className={loading ? "animate-spin" : ""} /> Refresh
             </button>

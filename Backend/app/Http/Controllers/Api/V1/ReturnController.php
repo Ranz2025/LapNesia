@@ -49,7 +49,7 @@ class ReturnController extends Controller
     public function store(Request $request): JsonResponse
     {
         $request->validate([
-            'order_id' => 'required|uuid|exists:orders,id',
+            'order_id' => 'required|integer|exists:orders,id',
             'reason'   => 'required|string|min:10|max:1000',
         ]);
 

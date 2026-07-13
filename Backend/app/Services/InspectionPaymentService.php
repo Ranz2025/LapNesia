@@ -137,8 +137,10 @@ class InspectionPaymentService
                     if (in_array($job->status, ['accepted', 'assigned'])) {
                         $job->update(['status' => 'in_progress']);
                         // Notifikasi ke buyer bahwa pembayaran sukses & inspeksi sedang berlangsung
-                        $job->load('requester');
+                        $job->load(['requester', 'technician', 'product']);
                         $job->requester?->notify(new \App\Notifications\InspectionJobInProgressNotification($job));
+                        // Notifikasi ke teknisi bahwa buyer sudah membayar
+                        $job->technician?->notify(new \App\Notifications\InspectionPaymentPaidNotification($job));
                     }
 
                     // Hold dana ke held_balance teknisi (escrow masuk)

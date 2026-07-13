@@ -132,19 +132,19 @@ export default function Laptop() {
                style={{ background: "#06B6D4" }} />
 
           <div className="relative max-w-2xl">
-            <SectionLabel icon={<Sparkles size={11} />} text="Semua unit diinspeksi 25 titik" />
+            <SectionLabel icon={<Sparkles size={11} />} text="Semua unit dapat diinspeksi oleh teknisi tersertifikasi" />
             <h1
               className="text-3xl md:text-4xl mb-3 leading-tight"
               style={{ fontFamily: FONT_DISPLAY, fontWeight: 800, color: CLR_TEXT }}
             >
-              Katalog{" "}
+              Jelajahi Laptop{" "}
               <span style={{ backgroundImage: GRAD_PRIMARY, WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" }}>
-                Laptop
+                Terbaik
               </span>
             </h1>
             <p className="text-sm leading-relaxed mb-7 max-w-lg" style={{ color: CLR_MUTED }}>
-              Laptop bekas berkualitas — setiap unit melewati inspeksi menyeluruh oleh teknisi terverifikasi
-              dan dilindungi escrow sampai kamu konfirmasi kondisinya.
+              Temukan berbagai pilihan laptop yang dapat diinspeksi oleh teknisi tersertifikasi,
+              sehingga kamu dapat berbelanja dengan lebih percaya diri.
             </p>
 
             {/* Search row */}
@@ -187,7 +187,7 @@ export default function Laptop() {
 
             <div className="flex flex-wrap gap-x-6 gap-y-2 mt-6">
               {[
-                { icon: <Shield size={13} />, text: "Inspeksi 25 titik" },
+                { icon: <Shield size={13} />, text: "Teknisi tersertifikasi" },
                 { icon: <CheckCircle size={13} />, text: "Escrow aman" },
               ].map(({ icon, text }) => (
                 <span key={text} className="flex items-center gap-1.5 text-[12px] font-medium" style={{ color: CLR_MUTED }}>

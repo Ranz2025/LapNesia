@@ -54,7 +54,7 @@ const STATUS_CONFIG = {
     step: 4,
   },
   expired: {
-    label: "Kedaluwarsa",
+    label: "Dibatalkan",
     icon: <XCircle size={14} />,
     pill: { bg: "rgba(100,116,139,0.10)", text: "#64748B", border: "rgba(100,116,139,0.25)" },
     step: 0,
@@ -437,7 +437,7 @@ export default function OrderDetail() {
             >
               {[
                 { icon: <Shield size={13} />, text: "Escrow aman" },
-                { icon: <CheckCircle2 size={13} />, text: "Inspeksi 25 titik" },
+                { icon: <CheckCircle2 size={13} />, text: "Teknisi tersertifikasi" },
                 { icon: <Star size={13} />, text: "Terverifikasi" },
               ].map(({ icon, text }) => (
                 <span key={text} className="flex items-center gap-1.5 text-xs font-medium" style={{ color: CLR_MUTED }}>

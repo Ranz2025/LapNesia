@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\InspectionJob;
 use App\Models\TechnicianAvailability;
 use App\Models\TechnicianProfile;
 use App\Models\User;
@@ -11,9 +12,17 @@ class TechnicianService
 {
     public function getAll(): LengthAwarePaginator
     {
+        // Ambil ID teknisi yang sedang punya job aktif (assigned/accepted/in_progress)
+        // Harus konsisten dengan InspectionJobService::canAcceptNewJob()
+        $busyTechnicianIds = InspectionJob::whereIn('status', ['assigned', 'accepted', 'in_progress'])
+            ->pluck('technician_id')
+            ->unique()
+            ->toArray();
+
         return User::with('technicianProfile')
             ->where('role', 'technician')
             ->whereIn('status', ['verified', 'active'])
+            ->whereNotIn('id', $busyTechnicianIds)
             ->latest()
             ->paginate(12);
     }

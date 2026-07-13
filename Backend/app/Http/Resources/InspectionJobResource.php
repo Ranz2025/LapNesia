@@ -33,14 +33,26 @@ class InspectionJobResource extends JsonResource
             'technician_schedule_date'  => $this->technician_schedule_date?->toDateString(),
             'technician_schedule_time'  => $this->technician_schedule_time,
             'technician_schedule_notes' => $this->technician_schedule_notes,
+            'product_id'     => $this->product_id,
+            // Convenient top-level product name for display
+            'product_name'   => $this->whenLoaded('product', fn() =>
+                optional($this->product->brand)->name
+                    ? optional($this->product->brand)->name . ' ' . $this->product->model
+                    : $this->product->model
+            ),
             'product'        => $this->whenLoaded('product', fn() => [
                 'id'    => $this->product->id,
+                'name'  => $this->product->model,
                 'model' => $this->product->model,
+                'brand' => optional($this->product->brand)->name ?? null,
                 'slug'  => $this->product->slug,
                 'seller' => $this->product->relationLoaded('seller') ? [
                     'id'   => $this->product->seller->id,
                     'name' => $this->product->seller->name,
-                ] : null,
+                ] : ($this->product->relationLoaded('user') ? [
+                    'id'   => $this->product->user->id,
+                    'name' => $this->product->user->name,
+                ] : null),
             ]),
             'technician'     => $this->whenLoaded('technician', fn() => [
                 'id'   => $this->technician->id,

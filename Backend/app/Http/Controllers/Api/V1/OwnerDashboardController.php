@@ -11,7 +11,6 @@ use App\Traits\ApiResponse;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class OwnerDashboardController extends Controller
 {
@@ -22,54 +21,45 @@ class OwnerDashboardController extends Controller
         $period = $request->get('period', 'monthly');
         $now    = Carbon::now();
 
-        // Date ranges
-        $ranges = match($period) {
-            'weekly'  => [$now->copy()->startOfWeek(), $now->copy()->endOfWeek()],
-            'yearly'  => [$now->copy()->startOfYear(), $now->copy()->endOfYear()],
-            default   => [$now->copy()->startOfMonth(), $now->copy()->endOfMonth()],
+        [$from, $to] = match ($period) {
+            'weekly' => [$now->copy()->startOfWeek(), $now->copy()->endOfWeek()],
+            'yearly' => [$now->copy()->startOfYear(), $now->copy()->endOfYear()],
+            default  => [$now->copy()->startOfMonth(), $now->copy()->endOfMonth()],
         };
-        [$from, $to] = $ranges;
 
-        // Users
-        $totalUsers    = User::count();
-        $totalSellers  = User::where('role', 'seller')->count();
-        $totalBuyers   = User::where('role', 'buyer')->count();
+        $paidStatuses = ['paid', 'shipped', 'completed'];
+
+        /* ── USERS ─────────────────────────────────────────────── */
+        $totalUsers       = User::count();
+        $totalSellers     = User::where('role', 'seller')->count();
+        $totalBuyers      = User::where('role', 'buyer')->count();
         $totalTechnicians = User::where('role', 'technician')->count();
-        $newUsers      = User::whereBetween('created_at', [$from, $to])->count();
+        $newUsers         = User::whereBetween('created_at', [$from, $to])->count();
 
-        // Orders
+        /* ── ORDERS ────────────────────────────────────────────── */
         $totalOrders     = Order::count();
-        $completedOrders = Order::where('status', 'completed')->count();
-        $periodOrders    = Order::whereBetween('created_at', [$from, $to])->count();
+        $completedOrders = Order::whereIn('status', $paidStatuses)->count();
+        $periodOrders    = Order::whereIn('status', $paidStatuses)
+            ->whereNotNull('paid_at')
+            ->whereBetween('paid_at', [$from, $to])
+            ->count();
 
-        // Revenue (platform fees from completed orders)
-        $totalRevenue  = Order::where('status', 'completed')->sum('platform_fee');
-        $periodRevenue = Order::where('status', 'completed')
-            ->whereBetween('completed_at', [$from, $to])
+        /* ── REVENUE ───────────────────────────────────────────── */
+        $totalRevenue  = Order::whereIn('status', $paidStatuses)->sum('platform_fee');
+        $periodRevenue = Order::whereIn('status', $paidStatuses)
+            ->whereNotNull('paid_at')
+            ->whereBetween('paid_at', [$from, $to])
             ->sum('platform_fee');
 
-        // Wallet total balance
+        /* ── WALLET & WITHDRAWAL ───────────────────────────────── */
         $totalWalletBalance = Wallet::sum('available_balance');
         $totalHeldBalance   = Wallet::sum('held_balance');
-
-        // Withdrawals
-        $totalWithdrawals  = Withdrawal::where('status', 'processed')->sum('amount');
+        $totalWithdrawals   = Withdrawal::where('status', 'processed')->sum('amount');
         $pendingWithdrawals = Withdrawal::where('status', 'pending')->sum('amount');
 
-        // Revenue chart (last 12 months)
-        $revenueChart = Order::where('status', 'completed')
-            ->where('completed_at', '>=', now()->subMonths(12))
-            ->selectRaw('SUBSTR(completed_at, 1, 7) as month, SUM(platform_fee) as revenue, COUNT(*) as orders')
-            ->groupBy('month')
-            ->orderBy('month')
-            ->get();
-
-        // User growth chart (last 12 months)
-        $userGrowth = User::where('created_at', '>=', now()->subMonths(12))
-            ->selectRaw('SUBSTR(created_at, 1, 7) as month, COUNT(*) as count')
-            ->groupBy('month')
-            ->orderBy('month')
-            ->get();
+        /* ── CHARTS ────────────────────────────────────────────── */
+        $revenueChart    = $this->buildRevenueChart($period, $from, $to, $paidStatuses);
+        $userGrowthChart = $this->buildUserGrowthChart($period, $from, $to);
 
         return $this->successResponse([
             'stats' => [
@@ -90,9 +80,158 @@ class OwnerDashboardController extends Controller
             ],
             'charts' => [
                 'revenue'     => $revenueChart,
-                'user_growth' => $userGrowth,
+                'user_growth' => $userGrowthChart,
             ],
             'period' => $period,
         ]);
+    }
+
+    /* ────────────────────────────────────────────────────────────
+     | REVENUE CHART
+     | weekly  → 7 titik per hari (Sen–Min)
+     | monthly → 4–5 titik per minggu dalam bulan ini
+     | yearly  → 12 titik per bulan
+     ─────────────────────────────────────────────────────────── */
+    private function buildRevenueChart(string $period, Carbon $from, Carbon $to, array $paidStatuses): array
+    {
+        if ($period === 'weekly') {
+            $rows = Order::whereIn('status', $paidStatuses)
+                ->whereNotNull('paid_at')
+                ->whereBetween('paid_at', [$from, $to])
+                ->selectRaw('DATE(paid_at) as grp, SUM(platform_fee) as revenue, COUNT(*) as orders')
+                ->groupBy('grp')->orderBy('grp')->get()->keyBy('grp');
+
+            $dayNames = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+            $result = [];
+            $cursor = $from->copy();
+            while ($cursor->lte($to)) {
+                $key = $cursor->toDateString();
+                $result[] = [
+                    'label'   => $dayNames[$cursor->dayOfWeek],
+                    'date'    => $cursor->isoFormat('D MMMM YYYY') . ' (' . $dayNames[$cursor->dayOfWeek] . ')',
+                    'revenue' => (float) ($rows[$key]->revenue ?? 0),
+                    'orders'  => (int)   ($rows[$key]->orders  ?? 0),
+                ];
+                $cursor->addDay();
+            }
+            return $result;
+        }
+
+        if ($period === 'yearly') {
+            $rows = Order::whereIn('status', $paidStatuses)
+                ->whereNotNull('paid_at')
+                ->whereBetween('paid_at', [$from, $to])
+                ->selectRaw('DATE_FORMAT(paid_at, "%Y-%m") as grp, SUM(platform_fee) as revenue, COUNT(*) as orders')
+                ->groupBy('grp')->orderBy('grp')->get()->keyBy('grp');
+
+            $result = [];
+            $cursor = $from->copy()->startOfMonth();
+            while ($cursor->lte($to)) {
+                $key = $cursor->format('Y-m');
+                $result[] = [
+                    'label'   => $cursor->locale('id')->isoFormat('MMM'),
+                    'date'    => $cursor->locale('id')->isoFormat('MMMM YYYY'),
+                    'revenue' => (float) ($rows[$key]->revenue ?? 0),
+                    'orders'  => (int)   ($rows[$key]->orders  ?? 0),
+                ];
+                $cursor->addMonth();
+            }
+            return $result;
+        }
+
+        // monthly → per minggu
+        $rows = Order::whereIn('status', $paidStatuses)
+            ->whereNotNull('paid_at')
+            ->whereBetween('paid_at', [$from, $to])
+            ->selectRaw('YEARWEEK(paid_at, 1) as grp, SUM(platform_fee) as revenue, COUNT(*) as orders')
+            ->groupBy('grp')->orderBy('grp')->get()->keyBy('grp');
+
+        $result  = [];
+        $cursor  = $from->copy()->startOfWeek(Carbon::MONDAY);
+        $weekNum = 1;
+        while ($cursor->lte($to)) {
+            $weekEnd = $cursor->copy()->endOfWeek(Carbon::SUNDAY);
+            $key     = $cursor->format('oW');
+            $result[] = [
+                'label'   => "Mg {$weekNum}",
+                'date'    => $cursor->isoFormat('D MMM') . ' – ' . $weekEnd->isoFormat('D MMM YYYY'),
+                'revenue' => (float) ($rows[$key]->revenue ?? 0),
+                'orders'  => (int)   ($rows[$key]->orders  ?? 0),
+            ];
+            $cursor->addWeek();
+            $weekNum++;
+            if ($cursor->gt($to)) break;
+        }
+        return $result;
+    }
+
+    /* ────────────────────────────────────────────────────────────
+     | USER GROWTH CHART
+     | weekly  → 7 titik per hari (Sen–Min)
+     | monthly → 4–5 titik per minggu dalam bulan ini
+     | yearly  → 12 titik per bulan
+     ─────────────────────────────────────────────────────────── */
+    private function buildUserGrowthChart(string $period, Carbon $from, Carbon $to): array
+    {
+        if ($period === 'weekly') {
+            $rows = User::whereBetween('created_at', [$from, $to])
+                ->selectRaw('DATE(created_at) as grp, COUNT(*) as count')
+                ->groupBy('grp')->orderBy('grp')->get()->keyBy('grp');
+
+            $dayNames = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+            $result = [];
+            $cursor = $from->copy();
+            while ($cursor->lte($to)) {
+                $key = $cursor->toDateString();
+                $result[] = [
+                    'label' => $dayNames[$cursor->dayOfWeek],
+                    'date'  => $cursor->isoFormat('D MMMM YYYY') . ' (' . $dayNames[$cursor->dayOfWeek] . ')',
+                    'users' => (int) ($rows[$key]->count ?? 0),
+                ];
+                $cursor->addDay();
+            }
+            return $result;
+        }
+
+        if ($period === 'yearly') {
+            $rows = User::whereBetween('created_at', [$from, $to])
+                ->selectRaw('DATE_FORMAT(created_at, "%Y-%m") as grp, COUNT(*) as count')
+                ->groupBy('grp')->orderBy('grp')->get()->keyBy('grp');
+
+            $result = [];
+            $cursor = $from->copy()->startOfMonth();
+            while ($cursor->lte($to)) {
+                $key = $cursor->format('Y-m');
+                $result[] = [
+                    'label' => $cursor->locale('id')->isoFormat('MMM'),
+                    'date'  => $cursor->locale('id')->isoFormat('MMMM YYYY'),
+                    'users' => (int) ($rows[$key]->count ?? 0),
+                ];
+                $cursor->addMonth();
+            }
+            return $result;
+        }
+
+        // monthly → per minggu
+        $rows = User::whereBetween('created_at', [$from, $to])
+            ->selectRaw('YEARWEEK(created_at, 1) as grp, COUNT(*) as count')
+            ->groupBy('grp')->orderBy('grp')->get()->keyBy('grp');
+
+        $result  = [];
+        $cursor  = $from->copy()->startOfWeek(Carbon::MONDAY);
+        $weekNum = 1;
+        while ($cursor->lte($to)) {
+            $weekEnd = $cursor->copy()->endOfWeek(Carbon::SUNDAY);
+            $key     = $cursor->format('oW');
+            $result[] = [
+                'label' => "Mg {$weekNum}",
+                'date'  => $cursor->isoFormat('D MMM') . ' – ' . $weekEnd->isoFormat('D MMM YYYY'),
+                'users' => (int) ($rows[$key]->count ?? 0),
+            ];
+            $cursor->addWeek();
+            $weekNum++;
+            if ($cursor->gt($to)) break;
+        }
+        return $result;
     }
 }

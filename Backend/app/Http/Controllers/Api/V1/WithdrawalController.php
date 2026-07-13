@@ -49,7 +49,7 @@ class WithdrawalController extends Controller
             $wallet = Wallet::where('user_id', $request->user()->id)->lockForUpdate()->firstOrFail();
             $withdrawal = $this->service->create($wallet, $request->validated());
 
-            return $this->successResponse(new WithdrawalResource($withdrawal->load(['wallet', 'approver'])), 'Withdrawal berhasil dibuat.', 201);
+            return $this->successResponse(new WithdrawalResource($withdrawal->load(['wallet', 'approver'])), 'Penarikan dana berhasil diproses dan disetujui.', 201);
         } catch (\Exception $e) {
             return $this->errorResponse($e->getMessage(), 422);
         }

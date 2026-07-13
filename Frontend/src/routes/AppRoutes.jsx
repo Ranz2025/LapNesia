@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import PublicLayout from "../components/layout/PublicLayout";
+import ScrollToTop from "../components/layout/ScrollToTop";
 
 import Home from "../pages/Home/Home";
 import Login from "../pages/Auth/Login";
@@ -37,8 +38,10 @@ import TechnicianDashboard from "../pages/Technician/Dashboard";
 import InspectionJobs from "../pages/Technician/InspectionJobs";
 import SubmitReport from "../pages/Technician/SubmitReport";
 import TechnicianWallet from "../pages/Technician/Wallet";
+import TechnicianNotifications from "../pages/Technician/Notifications";
 import AdminDashboard from "../pages/Admin/Dashboard";
 import TechnicianVerification from "../pages/Admin/TechnicianVerification";
+import AdminUserManagement from "../pages/Admin/AdminUserManagement";
 import OwnerDashboard from "../pages/Owner/Dashboard";
 
 import Technicians from "../pages/Inspection/Technicians";
@@ -53,6 +56,7 @@ import ChatRoom from "../pages/Chat/ChatRoom";
 export default function AppRoutes() {
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <Routes>
         {/* ────────────────────────────────────────────────────────────────
             PUBLIC ROUTES (dengan Navbar + Footer via PublicLayout)
@@ -234,6 +238,14 @@ export default function AppRoutes() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/technician/notifications"
+          element={
+            <ProtectedRoute requiredRoles={["technician", "admin"]}>
+              <TechnicianNotifications />
+            </ProtectedRoute>
+          }
+        />
 
         {/* ────────────────────────────────────────────────────────────────
             INSPECTION ROUTES (Buyer)
@@ -340,12 +352,12 @@ export default function AppRoutes() {
         />
 
         {/* ────────────────────────────────────────────────────────────────
-            WITHDRAWAL (Seller/Technician)
+            WITHDRAWAL (Seller/Technician/Buyer)
             ─────────────────────────────────────────────────────────────── */}
         <Route
           path="/withdrawal"
           element={
-            <ProtectedRoute requiredRoles={["seller", "technician", "admin"]}>
+            <ProtectedRoute requiredRoles={["seller", "technician", "buyer", "admin"]}>
               <WithdrawalForm />
             </ProtectedRoute>
           }
@@ -367,6 +379,14 @@ export default function AppRoutes() {
           element={
             <ProtectedRoute requiredRoles={["admin"]}>
               <TechnicianVerification />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/users"
+          element={
+            <ProtectedRoute requiredRoles={["admin"]}>
+              <AdminUserManagement />
             </ProtectedRoute>
           }
         />

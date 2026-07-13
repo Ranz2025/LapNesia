@@ -190,6 +190,10 @@ export default function InspectionOrderDetail() {
 
   /* ─── Midtrans Pay ─── */
   const handlePay = async () => {
+    if (!window.snap) {
+      toast.error("Payment gateway belum siap. Coba refresh halaman.");
+      return;
+    }
     setPaying(true);
     try {
       const res = await payInspectionJob(job.id);
@@ -267,7 +271,7 @@ export default function InspectionOrderDetail() {
   const hasReport      = isCompleted && !!report;
   const showRating     = isCompleted && !job.buyer_rating;
   const techName       = technician.name ?? technician.user?.name ?? "Teknisi";
-  const productName    = product.name ?? product.title ?? `#${job.product_id}`;
+  const productName    = job.product_name ?? product.model ?? product.name ?? product.title ?? `Job #${job.id}`;
 
   return (
     <div style={{ fontFamily: FONT_BODY, background: "#F0F9FF", minHeight: "100vh" }}>

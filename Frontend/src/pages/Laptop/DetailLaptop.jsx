@@ -1,10 +1,9 @@
 ﻿import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
-  ShoppingCart, Heart, Share2, Star, User, CheckCircle,
+  ShoppingCart, Heart, Share2, Star, User,
   AlertCircle, ChevronLeft, Shield, MapPin, Cpu, HardDrive, MemoryStick, Monitor, MessageCircle
 } from "lucide-react";
-import api from "../../services/api";
 import { getProductBySlug } from "../../services/productService";
 import { getRatingsByProduct } from "../../services/ratingService";
 import { createOrder } from "../../services/orderService";
@@ -15,25 +14,6 @@ import { startChat } from "../../services/chatService";
 
 const FONT_DISPLAY = "'Baloo 2', sans-serif";
 const GRADIENT = "linear-gradient(90deg, #2563EB 0%, #06B6D4 100%)";
-
-function GradientStamp({ size = 72 }) {
-  return (
-    <div style={{ width: size, height: size, transform: "rotate(-10deg)" }} className="relative flex-shrink-0 select-none">
-      <svg viewBox="0 0 100 100" className="w-full h-full">
-        <defs>
-          <linearGradient id="stampGradDetail" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#2563EB" />
-            <stop offset="100%" stopColor="#2563EB" />
-          </linearGradient>
-        </defs>
-        <circle cx="50" cy="50" r="47" fill="none" stroke="url(#stampGradDetail)" strokeWidth="2.5" />
-        <circle cx="50" cy="50" r="40" fill="none" stroke="url(#stampGradDetail)" strokeWidth="1" strokeDasharray="2 3" />
-        <path d="M35 52 L46 63 L67 40" fill="none" stroke="url(#stampGradDetail)" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-        <text x="50" y="78" textAnchor="middle" fontSize="6.5" fill="#2563EB" fontWeight="700" letterSpacing="0.5">LULUS CEK</text>
-      </svg>
-    </div>
-  );
-}
 
 function StarRow({ value, size = 14 }) {
   return (
@@ -62,8 +42,7 @@ export default function DetailLaptop() {
   const [selectedImage, setSelectedImage] = useState(0);
   const [error, setError] = useState(null);
   const [wishlisted, setWishlisted] = useState(false);
-  const [showAddressModal, setShowAddressModal] = useState(false);
-  const [shippingAddress, setShippingAddress] = useState("");
+
 
   useEffect(() => { fetchProduct(); }, [slug]);
 
@@ -110,43 +89,19 @@ export default function DetailLaptop() {
     }
   };
 
-  const handleBuy = () => {
+  const handleBuy = async () => {
     if (!isAuthenticated()) { navigate("/login?redirect=/laptop/" + slug); return; }
     const user = getUser();
     if (user?.role !== "buyer") { toast.error("Hanya pembeli yang dapat melakukan pembelian."); return; }
-    setShippingAddress("");
-    setShowAddressModal(true);
-  };
-
-  const handleConfirmOrder = async () => {
-    if (!shippingAddress.trim()) { toast.error("Alamat penerima wajib diisi."); return; }
     setBuying(true);
     try {
-      const res = await createOrder({ product_id: product.id, shipping_address: shippingAddress.trim() });
-      setShowAddressModal(false);
+      const res = await createOrder({ product_id: product.id, shipping_address: "" });
       toast.success("Pesanan berhasil dibuat! Menuju halaman pembayaran...");
-      setTimeout(() => navigate("/checkout/" + res.data.id), 1000);
+      setTimeout(() => navigate("/checkout/" + res.data.id), 800);
     } catch (err) {
       toast.error(err.response?.data?.message || "Gagal membuat pesanan. Silakan coba lagi.");
     } finally {
       setBuying(false);
-    }
-  };
-
-  const inspectionReport = product?.latest_inspection_report;
-  const isInspectionValid = inspectionReport?.expires_at
-    ? new Date(inspectionReport.expires_at) > new Date()
-    : false;
-  const isExpired = inspectionReport && !isInspectionValid;
-
-  const openInspectionReport = async () => {
-    try {
-      const res = await api.get(`/v1/inspection-reports/${inspectionReport.id}/pdf`, { responseType: "blob" });
-      const url = URL.createObjectURL(new Blob([res.data], { type: "application/pdf" }));
-      window.open(url, "_blank", "noreferrer");
-      setTimeout(() => URL.revokeObjectURL(url), 60_000);
-    } catch (err) {
-      toast.error(err.response?.data?.message || err.message || "Gagal membuka laporan.");
     }
   };
 
@@ -213,11 +168,6 @@ export default function DetailLaptop() {
                 border: "1px solid #BFDBFE",
               }}
             >
-              {inspectionReport && isInspectionValid && (
-                <div className="absolute top-4 right-4 z-10">
-                  <GradientStamp size={72} />
-                </div>
-              )}
               {mainImage ? (
                 <img src={mainImage} alt={product.model} className="w-full h-full object-contain p-4" />
               ) : (
@@ -371,64 +321,20 @@ export default function DetailLaptop() {
               </div>
             )}
 
-            {/* Inspection Badge */}
-            {inspectionReport && (
-              isInspectionValid ? (
-                <div
-                  className="rounded-2xl p-4 flex items-center gap-3 justify-between"
-                  style={{ background: "rgba(16,185,129,0.08)", border: "1px solid rgba(52,211,153,0.25)" }}
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <CheckCircle size={20} style={{ color: "#34D399" }} className="flex-shrink-0" />
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-[#0F172A]">Telah Diinspeksi</p>
-                      <p className="text-xs" style={{ color: "#6EE7B7" }}>
-                        Berlaku hingga {new Date(inspectionReport.expires_at).toLocaleDateString("id-ID")}
-                      </p>
-                    </div>
-                  </div>
-                  {inspectionReport.pdf_url && (
-                    <button
-                      onClick={openInspectionReport}
-                      className="shrink-0 px-4 py-2 text-xs font-semibold rounded-full text-white transition hover:brightness-110"
-                      style={{ background: "linear-gradient(90deg, #059669, #34D399)", fontFamily: FONT_DISPLAY }}
-                    >
-                      Lihat Laporan
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <div
-                  className="rounded-2xl p-4 flex items-center gap-3"
-                  style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.25)" }}
-                >
-                  <AlertCircle size={20} style={{ color: "#FBBF24" }} className="flex-shrink-0" />
-                  <div>
-                    <p className="text-sm font-semibold text-[#0F172A]">Laporan Inspeksi Kedaluwarsa</p>
-                    <p className="text-xs" style={{ color: "#FCD34D" }}>
-                      Pembelian tidak tersedia hingga inspeksi diperbarui
-                    </p>
-                  </div>
-                </div>
-              )
-            )}
-
             {/* Action Buttons */}
             <div className="flex gap-3">
               <button
                 onClick={handleBuy}
-                disabled={buying || isExpired || product.status !== "active" || product.is_out_of_stock || product.stock === 0}
+                disabled={buying || product.status !== "active" || product.is_out_of_stock || product.stock === 0}
                 className="flex-1 py-3 rounded-full font-semibold text-[#0F172A] text-sm transition hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 style={{ background: GRADIENT, fontFamily: FONT_DISPLAY }}
               >
                 <ShoppingCart size={16} />
                 {buying
                   ? "Memproses..."
-                  : isExpired
-                    ? "Inspeksi Kedaluwarsa"
-                    : (product.is_out_of_stock || product.stock === 0)
-                      ? "Stok Habis"
-                      : "Beli Sekarang"}
+                  : (product.is_out_of_stock || product.stock === 0)
+                    ? "Stok Habis"
+                    : "Beli Sekarang"}
               </button>
 
               <button
@@ -627,102 +533,6 @@ export default function DetailLaptop() {
         )}
       </main>
 
-      {/* ── Modal Input Alamat Pengiriman ── */}
-      {showAddressModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center px-4"
-          style={{ background: "rgba(0,0,0,0.45)" }}
-          onClick={(e) => { if (e.target === e.currentTarget) setShowAddressModal(false); }}
-        >
-          <div
-            className="w-full max-w-md rounded-3xl p-6 sm:p-8"
-            style={{ background: "#FFFFFF", boxShadow: "0 24px 60px -12px rgba(37,99,235,0.25)" }}
-          >
-            {/* Header */}
-            <div className="flex items-center gap-3 mb-6">
-              <div
-                className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
-                style={{ background: "linear-gradient(135deg, #2563EB 0%, #06B6D4 100%)" }}
-              >
-                <MapPin size={20} className="text-white" />
-              </div>
-              <div>
-                <h2 className="text-lg font-extrabold text-[#0F172A]" style={{ fontFamily: FONT_DISPLAY }}>
-                  Alamat Penerima
-                </h2>
-                <p className="text-xs text-[#64748B]">Laptop akan dikirim ke alamat ini</p>
-              </div>
-            </div>
-
-            {/* Product info */}
-            <div
-              className="flex items-center gap-3 rounded-2xl p-3 mb-5"
-              style={{ background: "linear-gradient(160deg,#EFF6FF 0%,#F0F9FF 100%)", border: "1px solid #BFDBFE" }}
-            >
-              <div
-                className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
-                style={{ background: GRADIENT }}
-              >
-                <ShoppingCart size={16} className="text-white" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-[#0F172A] truncate">
-                  {product.brand?.name ? `${product.brand.name} ${product.model}` : product.model}
-                </p>
-                <p className="text-xs text-[#64748B]">
-                  Rp {Number(product.price).toLocaleString("id-ID")}
-                </p>
-              </div>
-            </div>
-
-            {/* Address textarea */}
-            <div className="mb-5">
-              <label className="block text-sm font-semibold text-[#0F172A] mb-2">
-                Alamat Lengkap <span className="text-red-500">*</span>
-              </label>
-              <textarea
-                rows={4}
-                value={shippingAddress}
-                onChange={(e) => setShippingAddress(e.target.value)}
-                placeholder="Contoh: Jl. Merdeka No. 12, RT 03/RW 05, Kelurahan Kebon Jeruk, Kec. Kebon Jeruk, Jakarta Barat 11530"
-                className="w-full rounded-xl px-4 py-3 text-sm resize-none outline-none transition"
-                style={{
-                  border: "1.5px solid #BFDBFE",
-                  background: "#F8FAFC",
-                  color: "#0F172A",
-                  fontFamily: "'Inter', sans-serif",
-                }}
-                onFocus={(e) => (e.target.style.borderColor = "#2563EB")}
-                onBlur={(e) => (e.target.style.borderColor = "#BFDBFE")}
-                maxLength={500}
-                autoFocus
-              />
-              <p className="text-right text-[11px] text-[#94A3B8] mt-1">
-                {shippingAddress.length}/500
-              </p>
-            </div>
-
-            {/* Actions */}
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowAddressModal(false)}
-                className="flex-1 py-3 rounded-xl text-sm font-semibold transition hover:brightness-95"
-                style={{ background: "#F1F5F9", color: "#475569", fontFamily: FONT_DISPLAY }}
-              >
-                Batal
-              </button>
-              <button
-                onClick={handleConfirmOrder}
-                disabled={buying || !shippingAddress.trim()}
-                className="flex-1 py-3 rounded-xl text-sm font-semibold text-white transition hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ background: GRADIENT, fontFamily: FONT_DISPLAY }}
-              >
-                {buying ? "Memproses..." : "Buat Pesanan"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

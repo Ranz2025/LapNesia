@@ -38,7 +38,7 @@ class ReturnStatusUpdatedNotification extends Notification
             'order_id'     => $this->return->order_id,
             'order_number' => $this->return->order?->order_number,
             'status'       => $this->return->status,
-            'action_url'   => '/orders/' . $this->return->order_id,
+            'action_url'   => '/returns/' . $this->return->id,
         ];
     }
 }

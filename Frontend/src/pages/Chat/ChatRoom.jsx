@@ -10,7 +10,7 @@ const GRADIENT = "linear-gradient(90deg, #2563EB 0%, #06B6D4 100%)";
 export default function ChatRoom() {
   const { roomId } = useParams();
   const navigate = useNavigate();
-  const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
+  const currentUser = JSON.parse(sessionStorage.getItem("user") || "{}");
 
   const [messages, setMessages] = useState([]);
   const [body, setBody] = useState("");

@@ -16,7 +16,9 @@ class ProductService
      */
     public function getProducts(array $filters): LengthAwarePaginator
     {
-        $query = Product::with(['brand', 'category', 'images', 'seller', 'inspectionJobs.report'])
+        // Untuk halaman listing, tidak perlu eager-load inspectionJobs.report
+        // karena memperberat query secara signifikan. Hanya load relasi yang ditampilkan.
+        $query = Product::with(['brand', 'category', 'images'])
             ->whereIn('status', ['active', 'sold']);
 
         if (!empty($filters['search'])) {
@@ -61,7 +63,7 @@ class ProductService
                 break;
         }
 
-        return $query->paginate(12);
+        return $query->paginate(50);
     }
 
     /**

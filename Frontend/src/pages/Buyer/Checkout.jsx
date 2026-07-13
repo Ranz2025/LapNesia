@@ -54,6 +54,12 @@ export default function Checkout() {
   };
 
   const handlePay = async () => {
+    if (!order.shipping_address?.trim()) {
+      toast.error("Harap isi alamat penerima terlebih dahulu.");
+      setEditingAddress(true);
+      setAddressInput("");
+      return;
+    }
     setPaying(true);
     try {
       const res = await payOrder(id);
@@ -121,6 +127,33 @@ export default function Checkout() {
             style={{ background: GRAD_PRIMARY, color: "#fff", fontFamily: FONT_DISPLAY }}
           >
             Lihat Semua Order
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (order?.status === "paid" || order?.status === "shipped" || order?.status === "completed") {
+    return (
+      <div className="relative min-h-screen overflow-hidden" style={{ fontFamily: FONT_BODY }}>
+        <AmbientBg />
+        <Navbar />
+        <div className="max-w-lg mx-auto px-4 py-20 text-center">
+          <div className="w-16 h-16 rounded-2xl mx-auto mb-5 flex items-center justify-center" style={{ background: "rgba(16,185,129,0.12)" }}>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20 6L9 17l-5-5" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-bold mb-2" style={{ fontFamily: FONT_DISPLAY, color: CLR_TEXT }}>Pembayaran Berhasil!</h2>
+          <p className="mb-6 text-sm" style={{ color: CLR_MUTED }}>
+            Pesanan kamu sedang diproses oleh penjual.
+          </p>
+          <button
+            onClick={() => navigate("/orders/" + id)}
+            className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-semibold transition hover:brightness-105"
+            style={{ background: GRAD_PRIMARY, color: "#fff", fontFamily: FONT_DISPLAY }}
+          >
+            Lihat Detail Order
           </button>
         </div>
       </div>
@@ -263,7 +296,7 @@ export default function Checkout() {
                   className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-lg transition hover:brightness-95"
                   style={{ background: "rgba(37,99,235,0.10)", color: CLR_ACCENT }}
                 >
-                  <Pencil size={11} /> Ubah
+                  <Pencil size={11} /> Masukan Alamat
                 </button>
               )}
             </div>

@@ -34,8 +34,8 @@ export default function Navbar() {
   };
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const userData = localStorage.getItem("user");
+    const token = sessionStorage.getItem("token");
+    const userData = sessionStorage.getItem("user");
     if (token && userData) {
       setIsLoggedIn(true);
       setUser(JSON.parse(userData));
@@ -54,7 +54,21 @@ export default function Navbar() {
       getUnreadCount().then(res => setUnreadCount(res?.data?.count ?? 0)).catch(() => {});
     fetchCount();
     const interval = setInterval(fetchCount, 30000);
-    return () => clearInterval(interval);
+
+    // Langsung update badge saat halaman notifikasi markAsRead/markAllRead
+    const onNotifRead = (e) => {
+      if (e.detail?.markAll) {
+        setUnreadCount(0);
+      } else {
+        setUnreadCount((c) => Math.max(0, c - 1));
+      }
+    };
+    window.addEventListener("notif:read", onNotifRead);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("notif:read", onNotifRead);
+    };
   }, [isLoggedIn]);
 
   // Close the account dropdown when clicking anywhere outside it
@@ -70,8 +84,8 @@ export default function Navbar() {
   }, [showDropdown]);
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    sessionStorage.removeItem("token");
+    sessionStorage.removeItem("user");
     setIsLoggedIn(false);
     setUser(null);
     setShowDropdown(false);
@@ -104,7 +118,7 @@ export default function Navbar() {
         { label: "Inspection Jobs", href: "/technician/jobs", icon: Briefcase },
         { label: "Wallet", href: "/technician/wallet", icon: Wallet },
         { label: "Chat", href: "/chat", icon: MessageCircle },
-        { label: "Notifikasi", href: "/notifications", icon: Bell },
+        { label: "Notifikasi", href: "/technician/notifications", icon: Bell },
       ],
       admin: [
         { label: "Admin Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
@@ -200,7 +214,11 @@ export default function Navbar() {
               <>
                 {/* Bell */}
                 <button
-                  onClick={() => navigate(user.role === "seller" ? "/seller/notifications" : "/notifications")}
+                  onClick={() => {
+                    if (user.role === "seller") navigate("/seller/notifications");
+                    else if (user.role === "technician") navigate("/technician/notifications");
+                    else navigate("/notifications");
+                  }}
                   className="relative w-9 h-9 rounded-full flex items-center justify-center transition-colors flex-shrink-0"
                   style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", color: "#64748B" }}
                   onMouseEnter={e => { e.currentTarget.style.color = "#0F172A"; e.currentTarget.style.background = "#F1F5F9"; }}

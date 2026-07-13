@@ -94,7 +94,7 @@ export default function ProfileEdit() {
         technician_profile: updatedProfile,
       };
       setUser(nextUser);
-      localStorage.setItem("user", JSON.stringify(nextUser));
+      sessionStorage.setItem("user", JSON.stringify(nextUser));
       toast.success("Sertifikat berhasil diunggah.");
     } catch (err) {
       toast.error(err.response?.data?.message || "Gagal upload sertifikat.");
@@ -114,7 +114,7 @@ export default function ProfileEdit() {
         phone: res.data.phone || "",
         address: res.data.address || "",
       });
-      localStorage.setItem("user", JSON.stringify(res.data));
+      sessionStorage.setItem("user", JSON.stringify(res.data));
     } catch {
       setError("Gagal memuat profil.");
     } finally {
@@ -132,7 +132,7 @@ export default function ProfileEdit() {
     try {
       const res = await updateProfile(form);
       setUser(res.data);
-      localStorage.setItem("user", JSON.stringify(res.data));
+      sessionStorage.setItem("user", JSON.stringify(res.data));
       toast.success("Profil berhasil diperbarui.");
     } catch (err) {
       toast.error(err.response?.data?.message || "Gagal menyimpan.");
@@ -152,7 +152,7 @@ export default function ProfileEdit() {
     try {
       const res = await uploadProfilePhoto(file);
       setUser(res.data);
-      localStorage.setItem("user", JSON.stringify(res.data));
+      sessionStorage.setItem("user", JSON.stringify(res.data));
       toast.success("Foto profil berhasil diperbarui.");
     } catch (err) {
       toast.error(err.response?.data?.message || "Gagal upload foto.");

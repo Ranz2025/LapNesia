@@ -48,7 +48,7 @@ function Eyebrow({ icon, text, color = CLR_ACCENT, bg = "rgba(37,99,235,0.08)", 
 }
 
 const STATS = [
-  { value: "2021",   label: "Tahun Berdiri" },
+  { value: "2026",   label: "Tahun Berdiri" },
   { value: "5.000+", label: "Laptop Terjual" },
   { value: "4.9/5",  label: "Rating Pengguna" },
   { value: "98%",    label: "Pembeli Puas" },
@@ -56,7 +56,7 @@ const STATS = [
 
 const MISI = [
   { icon: <ShoppingBag size={22} />, title: "Kualitas Terbaik",     desc: "Menyediakan laptop berkualitas dengan harga yang kompetitif dan transparan.",        accent: "#2563EB" },
-  { icon: <CheckCircle size={22} />, title: "Informasi Transparan", desc: "Laporan inspeksi lengkap 25 titik sehingga pembeli tahu persis kondisi unit.",        accent: "#1D4ED8" },
+  { icon: <CheckCircle size={22} />, title: "Informasi Transparan", desc: "Laporan inspeksi lengkap oleh teknisi tersertifikasi sehingga pembeli tahu persis kondisi unit.",        accent: "#1D4ED8" },
   { icon: <Shield size={22} />,      title: "Transaksi Aman",       desc: "Sistem escrow memastikan pembayaran ditahan hingga kamu konfirmasi unit.",            accent: "#0891B2" },
   { icon: <Users size={22} />,       title: "Satu Ekosistem",       desc: "Mendukung penjual dan pembeli dalam platform yang adil dan terpercaya.",              accent: "#06B6D4" },
 ];
@@ -109,7 +109,7 @@ export default function TentangKami() {
               <div className="flex flex-wrap gap-x-6 gap-y-3">
                 {[
                   { icon: <MapPin size={13} />, text: "Melayani seluruh Indonesia" },
-                  { icon: <Shield size={13} />, text: "Inspeksi 25 titik" },
+                  { icon: <Shield size={13} />, text: "Teknisi tersertifikasi" },
                   { icon: <CheckCircle size={13} />, text: "Escrow aman" },
                 ].map(({ icon, text }) => (
                   <span key={text} className="flex items-center gap-1.5 text-[12px] font-medium" style={{ color: CLR_MUTED }}>

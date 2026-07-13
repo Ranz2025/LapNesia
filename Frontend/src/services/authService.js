@@ -3,15 +3,10 @@ import api from "./api";
 const persistAuth = (payload) => {
   const token = payload?.access_token;
   const user = payload?.user;
-  if (token) {
-    localStorage.setItem("token", token);
-    sessionStorage.setItem("token", token);
-  }
-  if (user) {
-    const serialized = JSON.stringify(user);
-    localStorage.setItem("user", serialized);
-    sessionStorage.setItem("user", serialized);
-  }
+  // Simpan ke sessionStorage saja agar tiap tab terisolasi
+  // (multi-tab login akun berbeda bisa berjalan bersamaan)
+  if (token) sessionStorage.setItem("token", token);
+  if (user)  sessionStorage.setItem("user", JSON.stringify(user));
 };
 
 export const login = async (credentials) => {
@@ -34,15 +29,13 @@ export const resetPassword = (data) =>
   api.post("/v1/auth/reset-password", data).then(r => r.data);
 
 export const logout = () => {
-  localStorage.removeItem("token");
-  localStorage.removeItem("user");
   sessionStorage.removeItem("token");
   sessionStorage.removeItem("user");
 };
 
 export const getUser = () => {
-  try { return JSON.parse(localStorage.getItem("user")); } catch { return null; }
+  try { return JSON.parse(sessionStorage.getItem("user")); } catch { return null; }
 };
 
-export const getToken = () => localStorage.getItem("token");
-export const isAuthenticated = () => !!localStorage.getItem("token");
+export const getToken = () => sessionStorage.getItem("token");
+export const isAuthenticated = () => !!sessionStorage.getItem("token");

@@ -1,24 +1,25 @@
 ﻿import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Users, Package, ShoppingCart, TrendingUp, Wallet, AlertCircle,
-  CheckCircle, Clock, X, RefreshCw, Wrench, ChevronRight,
-  Sparkles, ShieldCheck
+  Users, Package, ShoppingCart, Wallet, AlertCircle,
+  CheckCircle, RefreshCw, Wrench, ChevronRight,
+  Sparkles, ShieldCheck, Zap
 } from "lucide-react";
 import Navbar from "../../components/layout/Navbar";
 import { CardSkeleton } from "../../components/ui/Skeleton";
 import { toast } from "../../components/ui/Toast";
-import { getAdminDashboard, approveWithdrawal, rejectWithdrawal } from "../../services/profileService";
+import { getAdminDashboard } from "../../services/profileService";
 
-/* ─── DESIGN TOKENS (selaras dengan Home.jsx / Footer.jsx) ──── */
+/* ─── DESIGN TOKENS (selaras dengan Owner Dashboard) ──── */
 const FONT_DISPLAY = "'Baloo 2', sans-serif";
 const FONT_BODY    = "'Inter', sans-serif";
 
-const GRAD_PRIMARY = "linear-gradient(135deg, #2563EB 0%, #1D4ED8 40%, #0891B2 75%, #06B6D4 100%)";
+const GRAD_PRIMARY  = "linear-gradient(135deg, #2563EB 0%, #1D4ED8 40%, #0891B2 75%, #06B6D4 100%)";
+const GRAD_HERO_BG  = "linear-gradient(145deg, #DBEAFE 0%, #EFF6FF 50%, #F0F9FF 100%)";
 
 const CLR_TEXT      = "#0F172A";
 const CLR_MUTED     = "#475569";
-const CLR_SUBTLE    = "#64748B";
+const CLR_SUBTLE    = "#94A3B8";
 const CLR_BORDER    = "#BFDBFE";
 const CLR_BORDER_LT = "#E2E8F0";
 const CLR_ACCENT    = "#2563EB";
@@ -32,76 +33,39 @@ const unwrap = (payload) => {
   return data?.data ?? data ?? [];
 };
 
-const fmt = (n) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n || 0);
-
 const ICON_BG = {
-  blue:   { background: "rgba(37,99,235,0.10)",  color: "#2563EB" },
-  green:  { background: "rgba(16,185,129,0.10)", color: "#10B981" },
-  purple: { background: "rgba(147,51,234,0.10)", color: "#9333EA" },
-  orange: { background: "rgba(234,88,12,0.10)",  color: "#EA580C" },
-  red:    { background: "rgba(220,38,38,0.10)",  color: "#DC2626" },
-  cyan:   { background: "rgba(8,145,178,0.10)",  color: "#0891B2" },
+  blue:   { background: "rgba(37,99,235,0.12)",  color: "#2563EB" },
+  green:  { background: "rgba(16,185,129,0.12)", color: "#059669" },
+  purple: { background: "rgba(147,51,234,0.12)", color: "#9333EA" },
+  orange: { background: "rgba(245,158,11,0.12)", color: "#D97706" },
+  red:    { background: "rgba(220,38,38,0.12)",  color: "#DC2626" },
+  cyan:   { background: "rgba(8,145,178,0.12)",  color: "#0891B2" },
 };
 
-/* Gradient vivid untuk icon stat card (icon putih di atas gradient warna) */
-const ICON_GRAD = {
-  blue:   "linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)",
-  green:  "linear-gradient(135deg, #34D399 0%, #059669 100%)",
-  purple: "linear-gradient(135deg, #C084FC 0%, #9333EA 100%)",
-  orange: "linear-gradient(135deg, #FB923C 0%, #EA580C 100%)",
-  red:    "linear-gradient(135deg, #F87171 0%, #DC2626 100%)",
-  cyan:   "linear-gradient(135deg, #22D3EE 0%, #0891B2 100%)",
-};
-const ICON_SHADOW = {
-  blue: "0 8px 20px -6px rgba(37,99,235,0.5)",
-  green: "0 8px 20px -6px rgba(5,150,105,0.5)",
-  purple: "0 8px 20px -6px rgba(147,51,234,0.5)",
-  orange: "0 8px 20px -6px rgba(234,88,12,0.5)",
-  red: "0 8px 20px -6px rgba(220,38,38,0.5)",
-  cyan: "0 8px 20px -6px rgba(8,145,178,0.5)",
-};
+/* ─── Section Label (sama seperti Owner) ─── */
+function SectionLabel({ icon, text }) {
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-widest px-3 py-1 rounded-full font-semibold mb-3"
+      style={{ color: CLR_ACCENT, background: "rgba(37,99,235,0.08)", border: "1px solid rgba(37,99,235,0.20)" }}
+    >
+      {icon} {text}
+    </span>
+  );
+}
 
-const STATUS_STYLE = {
-  pending:   { bg: "rgba(234,88,12,0.10)",  fg: "#EA580C", icon: <Clock size={12} /> },
-  processed: { bg: "rgba(16,185,129,0.10)", fg: "#10B981", icon: <CheckCircle size={12} /> },
-  approved:  { bg: "rgba(16,185,129,0.10)", fg: "#10B981", icon: <CheckCircle size={12} /> },
-  rejected:  { bg: "rgba(220,38,38,0.10)",  fg: "#DC2626", icon: <X size={12} /> },
-};
-
-function StatCard({ icon, label, value, color = "blue", highlight = false }) {
+function StatCard({ icon, label, value, color = "blue" }) {
   return (
     <div
-      className="relative rounded-2xl p-5 flex items-center gap-4 transition-all duration-300 hover:-translate-y-1.5 overflow-hidden group"
-      style={{
-        background: highlight ? GRAD_PRIMARY : "#FFFFFF",
-        border: highlight ? "none" : `1px solid ${CLR_BORDER_LT}`,
-        boxShadow: highlight ? "0 12px 30px -10px rgba(37,99,235,0.45)" : "0 2px 10px rgba(0,0,0,0.04)",
-      }}
-      onMouseEnter={(e) => { if (!highlight) e.currentTarget.style.boxShadow = "0 16px 32px -12px rgba(37,99,235,0.18)"; }}
-      onMouseLeave={(e) => { if (!highlight) e.currentTarget.style.boxShadow = "0 2px 10px rgba(0,0,0,0.04)"; }}
+      className="rounded-2xl p-5 flex items-center gap-4 transition-all duration-300 hover:-translate-y-1"
+      style={{ background: "#FFFFFF", border: `1px solid ${CLR_BORDER_LT}`, boxShadow: "0 2px 10px rgba(0,0,0,0.04)" }}
     >
-      {!highlight && (
-        <div
-          className="absolute top-0 left-0 right-0 h-[3px] scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"
-          style={{ background: ICON_GRAD[color] }}
-        />
-      )}
-      <div
-        className="p-3 rounded-xl flex-shrink-0 text-white"
-        style={{ background: highlight ? "rgba(255,255,255,0.18)" : ICON_GRAD[color], boxShadow: highlight ? "none" : ICON_SHADOW[color] }}
-      >
+      <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style={ICON_BG[color]}>
         {icon}
       </div>
       <div className="min-w-0">
-        <p className="text-xs truncate mb-0.5" style={{ color: highlight ? "rgba(255,255,255,0.85)" : CLR_SUBTLE }}>
-          {label}
-        </p>
-        <p
-          className="text-xl font-bold truncate"
-          style={{ fontFamily: FONT_DISPLAY, color: highlight ? "#FFFFFF" : CLR_TEXT }}
-        >
-          {value}
-        </p>
+        <p className="text-[11px] truncate" style={{ color: CLR_MUTED }}>{label}</p>
+        <p className="text-lg font-bold truncate" style={{ color: CLR_TEXT, fontFamily: FONT_DISPLAY }}>{value}</p>
       </div>
     </div>
   );
@@ -111,16 +75,12 @@ function QuickAction({ icon, color, label, badge, badgeColor = "red", onClick })
   return (
     <button
       onClick={onClick}
-      className="relative rounded-2xl p-4 flex items-center gap-3 text-left transition-all duration-300 hover:-translate-y-1.5 group overflow-hidden"
+      className="relative rounded-2xl p-4 flex items-center gap-3 text-left transition-all duration-300 hover:-translate-y-1 group overflow-hidden w-full"
       style={{ background: "#FFFFFF", border: `1px solid ${CLR_BORDER_LT}`, boxShadow: "0 2px 10px rgba(0,0,0,0.04)" }}
       onMouseEnter={(e) => { e.currentTarget.style.borderColor = CLR_BORDER; e.currentTarget.style.boxShadow = "0 16px 32px -12px rgba(37,99,235,0.18)"; }}
       onMouseLeave={(e) => { e.currentTarget.style.borderColor = CLR_BORDER_LT; e.currentTarget.style.boxShadow = "0 2px 10px rgba(0,0,0,0.04)"; }}
     >
-      <div
-        className="absolute top-0 left-0 right-0 h-[3px] scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"
-        style={{ background: ICON_GRAD[color] }}
-      />
-      <div className="p-2.5 rounded-xl flex-shrink-0 text-white" style={{ background: ICON_GRAD[color], boxShadow: ICON_SHADOW[color] }}>
+      <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={ICON_BG[color]}>
         {icon}
       </div>
       <span className="font-semibold text-sm flex-1" style={{ color: CLR_TEXT }}>{label}</span>
@@ -142,7 +102,6 @@ export default function AdminDashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [actionLoading, setActionLoading] = useState(null);
   const navigate = useNavigate();
 
   const fetchData = async () => {
@@ -162,82 +121,52 @@ export default function AdminDashboard() {
     fetchData();
   }, []);
 
-  const handleApproveWithdrawal = async (id) => {
-    setActionLoading(id);
-    try {
-      await approveWithdrawal(id);
-      toast.success("Penarikan berhasil disetujui.");
-      fetchData();
-    } catch (e) {
-      toast.error(e.response?.data?.message || "Gagal menyetujui penarikan.");
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
-  const handleRejectWithdrawal = async (id) => {
-    const reason = prompt("Alasan penolakan:");
-    if (!reason || reason.length < 5) {
-      toast.error("Alasan minimal 5 karakter.");
-      return;
-    }
-    setActionLoading(id);
-    try {
-      await rejectWithdrawal(id, reason);
-      toast.success("Penarikan ditolak.");
-      fetchData();
-    } catch (e) {
-      toast.error(e.response?.data?.message || "Gagal menolak penarikan.");
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
   const s = data?.stats;
 
   return (
-    <div style={{ fontFamily: FONT_BODY }} className="relative min-h-screen overflow-hidden">
+    <div style={{ fontFamily: FONT_BODY, background: "#F8FAFC", minHeight: "100vh" }}>
 
-      {/* Ambient glow backdrop, selaras dengan Home.jsx */}
-      <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden" style={{ background: "#F8FAFC" }}>
-        <div className="absolute -top-32 -right-16 w-[420px] h-[420px] rounded-full opacity-20 blur-[130px]" style={{ background: "#93C5FD" }} />
-        <div className="absolute top-[50%] -left-20 w-[360px] h-[360px] rounded-full opacity-15 blur-[130px]" style={{ background: "#67E8F9" }} />
+      {/* Ambient glow backdrop, selaras dengan Owner.jsx */}
+      <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+        <div className="absolute -top-32 -right-16 w-[480px] h-[480px] rounded-full opacity-20 blur-[130px]" style={{ background: "#93C5FD" }} />
+        <div className="absolute top-[55%] -left-20 w-[420px] h-[420px] rounded-full opacity-15 blur-[130px]" style={{ background: "#67E8F9" }} />
       </div>
 
       <Navbar />
 
-      <main className={`${SECTION_X} py-8`}>
+      <main className={`${SECTION_X} pt-8 pb-14`}>
 
         {/* ══════════ Hero Header ══════════ */}
         <div
-          className="relative rounded-3xl overflow-hidden mb-8 px-6 sm:px-9 py-8"
+          className="rounded-3xl overflow-hidden relative mb-7"
           style={{ background: GRAD_PRIMARY, boxShadow: "0 16px 40px -16px rgba(37,99,235,0.45)" }}
         >
           <div className="absolute -top-16 -right-10 w-56 h-56 rounded-full opacity-20 blur-3xl pointer-events-none" style={{ background: "#FFFFFF" }} />
           <div className="absolute -bottom-14 -left-10 w-48 h-48 rounded-full opacity-15 blur-3xl pointer-events-none" style={{ background: "#FFFFFF" }} />
 
-          <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-5">
+          <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-5 px-6 sm:px-10 py-8 sm:py-10">
             <div>
               <span
                 className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-widest px-3 py-1 rounded-full font-semibold mb-3"
                 style={{ color: "#FFFFFF", background: "rgba(255,255,255,0.18)", border: "1px solid rgba(255,255,255,0.30)" }}
               >
-                <Sparkles size={11} /> Panel Admin
+                <Zap size={11} /> Panel Admin
               </span>
-              <h1 className="text-2xl md:text-3xl mb-1.5 text-white" style={{ fontFamily: FONT_DISPLAY, fontWeight: 800 }}>
-                Halo, Admin 👋
+              <h1 className="text-2xl sm:text-3xl leading-tight" style={{ fontFamily: FONT_DISPLAY, fontWeight: 800 }}>
+                <span className="text-white">Dashboard </span>
+                <span style={{ color: "#67E8F9" }}>Admin</span>
               </h1>
-              <p className="text-sm" style={{ color: "rgba(255,255,255,0.85)" }}>
+              <p className="text-sm mt-2 max-w-md" style={{ color: "rgba(255,255,255,0.85)" }}>
                 Kelola platform dan monitor aktivitas secara real-time.
               </p>
             </div>
             <div className="flex items-center gap-2.5 flex-shrink-0">
-              {s?.pending_technicians > 0 || s?.pending_withdrawals > 0 ? (
+              {s?.pending_technicians > 0 ? (
                 <span
                   className="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold px-3.5 py-2 rounded-xl"
                   style={{ background: "rgba(255,255,255,0.15)", color: "#FFFFFF", border: "1px solid rgba(255,255,255,0.25)" }}
                 >
-                  <AlertCircle size={13} /> {(s?.pending_technicians || 0) + (s?.pending_withdrawals || 0)} perlu tindakan
+                  <AlertCircle size={13} /> {s.pending_technicians} perlu tindakan
                 </span>
               ) : (
                 <span
@@ -250,8 +179,8 @@ export default function AdminDashboard() {
               <button
                 onClick={fetchData}
                 disabled={loading}
-                className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition hover:brightness-105 active:scale-95 disabled:opacity-60"
-                style={{ background: "#FFFFFF", color: CLR_ACCENT, fontFamily: FONT_DISPLAY }}
+                className="flex items-center gap-2 rounded-2xl px-5 py-2.5 text-sm font-semibold transition hover:brightness-105 active:scale-95 disabled:opacity-60"
+                style={{ background: "rgba(255,255,255,0.18)", color: "#FFFFFF", border: "1px solid rgba(255,255,255,0.30)", fontFamily: FONT_DISPLAY }}
               >
                 <RefreshCw size={15} className={loading ? "animate-spin" : ""} /> Refresh
               </button>
@@ -262,7 +191,7 @@ export default function AdminDashboard() {
         {error && (
           <div
             className="rounded-2xl p-4 mb-6 flex items-center justify-between"
-            style={{ background: "rgba(220,38,38,0.06)", border: "1px solid rgba(220,38,38,0.20)" }}
+            style={{ background: "#FFFFFF", border: "1px solid #FECACA" }}
           >
             <p className="text-sm font-medium" style={{ color: "#DC2626" }}>
               {error}
@@ -275,32 +204,44 @@ export default function AdminDashboard() {
 
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {Array.from({ length: 8 }).map((_, i) => (
+            {Array.from({ length: 7 }).map((_, i) => (
               <CardSkeleton key={i} />
             ))}
           </div>
         ) : s ? (
           <>
-            {/* ══════════ Stat cards ══════════ */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
-              <StatCard icon={<Users size={20} />} label="Total Pengguna" value={s.total_users} color="blue" />
-              <StatCard icon={<Users size={20} />} label="Total Penjual" value={s.total_sellers} color="purple" />
-              <StatCard icon={<Users size={20} />} label="Total Pembeli" value={s.total_buyers} color="green" />
-              <StatCard icon={<Wrench size={20} />} label="Total Teknisi" value={s.total_technicians} color="orange" />
-              <StatCard icon={<Package size={20} />} label="Total Produk" value={s.total_products} color="cyan" />
-              <StatCard icon={<ShoppingCart size={20} />} label="Total Order" value={s.total_orders} color="green" />
-              <StatCard icon={<TrendingUp size={20} />} label="Pendapatan Platform" value={fmt(s.total_revenue)} color="purple" highlight />
-              <StatCard icon={<AlertCircle size={20} />} label="Teknisi Pending" value={s.pending_technicians} color="red" />
+            {/* ══════════ Ekosistem Pengguna ══════════ */}
+            <div className="flex items-center gap-2 mb-4">
+              <Sparkles size={14} style={{ color: CLR_ACCENT }} />
+              <h2 className="text-sm font-semibold uppercase tracking-wide" style={{ color: CLR_MUTED }}>Ekosistem Pengguna</h2>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-7">
+              <StatCard icon={<Users size={20} style={ICON_BG.blue} />} label="Total Pengguna" value={s.total_users} color="blue" />
+              <StatCard icon={<Users size={20} style={ICON_BG.purple} />} label="Total Penjual" value={s.total_sellers} color="purple" />
+              <StatCard icon={<Users size={20} style={ICON_BG.green} />} label="Total Pembeli" value={s.total_buyers} color="green" />
+              <StatCard icon={<Wrench size={20} style={ICON_BG.orange} />} label="Total Teknisi" value={s.total_technicians} color="orange" />
+            </div>
+
+            {/* ══════════ Performa Platform ══════════ */}
+            <div className="flex items-center gap-2 mb-4">
+              <ShieldCheck size={14} style={{ color: CLR_ACCENT }} />
+              <h2 className="text-sm font-semibold uppercase tracking-wide" style={{ color: CLR_MUTED }}>Performa Platform</h2>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
+              <StatCard icon={<Package size={20} style={ICON_BG.cyan} />} label="Total Produk" value={s.total_products} color="cyan" />
+              <StatCard icon={<ShoppingCart size={20} style={ICON_BG.green} />} label="Total Order" value={s.total_orders} color="green" />
+              <StatCard icon={<AlertCircle size={20} style={ICON_BG.red} />} label="Teknisi Pending" value={s.pending_technicians} color="red" />
             </div>
 
             {/* ══════════ Quick Actions ══════════ */}
-            <div className="mb-10">
-              <h2 className="text-base font-semibold mb-4" style={{ fontFamily: FONT_DISPLAY, color: CLR_TEXT }}>
-                Aksi Cepat
-              </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="mb-4">
+              <div className="flex items-center gap-2 mb-4">
+                <Zap size={14} style={{ color: CLR_ACCENT }} />
+                <h2 className="text-sm font-semibold uppercase tracking-wide" style={{ color: CLR_MUTED }}>Aksi Cepat</h2>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <QuickAction
-                  icon={<Wrench size={20} />}
+                  icon={<Wrench size={18} style={ICON_BG.orange} />}
                   color="orange"
                   label="Verifikasi Teknisi"
                   badge={s.pending_technicians}
@@ -308,134 +249,19 @@ export default function AdminDashboard() {
                   onClick={() => navigate("/admin/technicians")}
                 />
                 <QuickAction
-                  icon={<Users size={20} />}
+                  icon={<Users size={18} style={ICON_BG.purple} />}
                   color="purple"
                   label="Kelola Pengguna"
                   badge={0}
-                  onClick={() => navigate("/admin/technicians?status=all")}
+                  onClick={() => navigate("/admin/users")}
                 />
                 <QuickAction
-                  icon={<Package size={20} />}
+                  icon={<Package size={18} style={ICON_BG.green} />}
                   color="green"
                   label="Lihat Produk"
                   badge={0}
                 />
-                <QuickAction
-                  icon={<Wallet size={20} />}
-                  color="blue"
-                  label="Kelola Penarikan"
-                  badge={s.pending_withdrawals}
-                  badgeColor="orange"
-                />
               </div>
-            </div>
-
-            {/* ══════════ Recent Withdrawals ══════════ */}
-            <div
-              className="rounded-2xl overflow-hidden"
-              style={{ background: "#FFFFFF", border: `1px solid ${CLR_BORDER_LT}`, boxShadow: "0 2px 10px rgba(0,0,0,0.04)" }}
-            >
-              <div
-                className="px-6 py-5 flex items-center justify-between gap-3"
-                style={{ borderBottom: `1px solid ${CLR_BORDER_LT}` }}
-              >
-                <div>
-                  <h2 className="text-base font-semibold" style={{ fontFamily: FONT_DISPLAY, color: CLR_TEXT }}>
-                    Penarikan Dana Terbaru
-                  </h2>
-                  <p className="text-xs mt-0.5" style={{ color: CLR_SUBTLE }}>Permintaan withdraw dari penjual</p>
-                </div>
-                {s.pending_withdrawals > 0 && (
-                  <span
-                    className="text-xs font-semibold px-3 py-1.5 rounded-full flex-shrink-0"
-                    style={{ background: "rgba(234,88,12,0.10)", color: "#EA580C" }}
-                  >
-                    {s.pending_withdrawals} pending
-                  </span>
-                )}
-              </div>
-
-              {!data.recent_withdrawals || data.recent_withdrawals.length === 0 ? (
-                <div className="p-14 text-center">
-                  <div
-                    className="w-14 h-14 rounded-2xl mx-auto mb-4 flex items-center justify-center"
-                    style={{ background: "rgba(16,185,129,0.10)" }}
-                  >
-                    <CheckCircle className="w-7 h-7" style={{ color: "#10B981" }} />
-                  </div>
-                  <p className="text-sm" style={{ color: CLR_MUTED }}>
-                    Tidak ada penarikan terbaru.
-                  </p>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead style={{ background: "#F8FAFC" }}>
-                      <tr style={{ borderBottom: `1px solid ${CLR_BORDER_LT}` }}>
-                        {["Pengguna", "Rekening", "Jumlah", "Status", "Tanggal", "Aksi"].map((h) => (
-                          <th key={h} className="text-left px-5 py-3 font-semibold text-[11px] uppercase tracking-wide" style={{ color: CLR_SUBTLE }}>
-                            {h}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {data.recent_withdrawals.map((w, idx) => {
-                        const st = STATUS_STYLE[w.status] || STATUS_STYLE.pending;
-                        return (
-                          <tr
-                            key={w.id}
-                            className="transition-colors hover:bg-[#F8FAFC]"
-                            style={{
-                              borderBottom: idx === data.recent_withdrawals.length - 1 ? "none" : `1px solid ${CLR_BORDER_LT}`,
-                            }}
-                          >
-                            <td className="px-5 py-4 font-medium" style={{ color: CLR_TEXT }}>{w.user_name}</td>
-                            <td className="px-5 py-4" style={{ color: CLR_MUTED }}>
-                              {w.bank_name} &middot; {w.account_number}
-                            </td>
-                            <td className="px-5 py-4 font-semibold" style={{ color: CLR_TEXT }}>{fmt(w.amount)}</td>
-                            <td className="px-5 py-4">
-                              <span
-                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold"
-                                style={{ background: st.bg, color: st.fg }}
-                              >
-                                {st.icon}
-                                {w.status.charAt(0).toUpperCase() + w.status.slice(1)}
-                              </span>
-                            </td>
-                            <td className="px-5 py-4" style={{ color: CLR_MUTED }}>
-                              {new Date(w.created_at).toLocaleDateString("id-ID")}
-                            </td>
-                            <td className="px-5 py-4">
-                              {w.status === "pending" && (
-                                <div className="flex gap-2">
-                                  <button
-                                    onClick={() => handleApproveWithdrawal(w.id)}
-                                    disabled={actionLoading === w.id}
-                                    className="px-3 py-1.5 text-xs font-semibold rounded-lg transition hover:brightness-95 disabled:opacity-60"
-                                    style={{ background: "rgba(16,185,129,0.12)", color: "#10B981" }}
-                                  >
-                                    Setujui
-                                  </button>
-                                  <button
-                                    onClick={() => handleRejectWithdrawal(w.id)}
-                                    disabled={actionLoading === w.id}
-                                    className="px-3 py-1.5 text-xs font-semibold rounded-lg transition hover:brightness-95 disabled:opacity-60"
-                                    style={{ background: "rgba(220,38,38,0.12)", color: "#DC2626" }}
-                                  >
-                                    Tolak
-                                  </button>
-                                </div>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
             </div>
           </>
         ) : null}

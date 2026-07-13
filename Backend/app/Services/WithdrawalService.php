@@ -15,7 +15,7 @@ class WithdrawalService
     public function __construct(protected WalletService $walletService) {}
 
     /**
-     * Rule A-C: Create withdrawal, freeze amount dari available_balance.
+     * Rule A-C: Create withdrawal, langsung auto-approved (tidak perlu persetujuan admin).
      */
     public function create(Wallet $wallet, array $data): Withdrawal
     {
@@ -30,7 +30,8 @@ class WithdrawalService
                 'bank_name'      => $data['bank_name'],
                 'account_name'   => $data['account_name'],
                 'account_number' => $data['account_number'],
-                'status'         => 'pending',
+                'status'         => 'approved',
+                'processed_at'   => now(),
             ]);
 
             // Freeze saldo dengan reference yang BENAR (withdrawal, bukan wallet)
@@ -43,6 +44,9 @@ class WithdrawalService
             );
 
             $this->auditLog($withdrawal->wallet->user, 'withdrawal_created', $withdrawal);
+
+            // Kirim notifikasi approved otomatis
+            WithdrawalApprovedEvent::dispatch($withdrawal->fresh());
 
             return $withdrawal;
         });

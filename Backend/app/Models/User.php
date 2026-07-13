@@ -2,13 +2,20 @@
 
 namespace App\Models;
 
+use App\Events\UserGrowthUpdated;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Carbon\Carbon;
+
 class User extends Authenticatable
 {
     use HasFactory, Notifiable, HasApiTokens;
+
+    protected $dispatchesEvents = [
+        'created' => \App\Events\UserCreated::class,
+    ];
 
     protected $fillable = [
         'name',

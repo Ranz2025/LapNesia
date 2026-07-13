@@ -24,7 +24,7 @@ class ReturnRequestedNotification extends Notification
             'order_id'     => $this->return->order_id,
             'order_number' => $this->return->order?->order_number,
             'reason'       => $this->return->reason,
-            'action_url'   => '/seller/orders',
+            'action_url'   => '/returns/' . $this->return->id,
         ];
     }
 }

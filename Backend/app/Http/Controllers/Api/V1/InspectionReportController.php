@@ -49,11 +49,15 @@ class InspectionReportController extends Controller
         return $this->successResponse(new InspectionReportResource($report->load('technician')));
     }
 
-    public function downloadPdf(string $id)
+    public function downloadPdf(Request $request, string $id)
     {
         $report = InspectionReport::with(['job', 'technician'])->findOrFail($id);
 
-        // PDF laporan inspeksi bersifat publik — dapat diakses oleh siapa pun (termasuk calon buyer)
+        // Hanya pembeli yang memesan, teknisi yang mengerjakan, atau admin/owner
+        if (Gate::denies('downloadPdf', $report)) {
+            return $this->errorResponse('Anda tidak memiliki akses untuk mengunduh laporan ini.', 403);
+        }
+
         $path = $report->pdf_url;
 
         if (!$path || !Storage::disk('public')->exists($path)) {

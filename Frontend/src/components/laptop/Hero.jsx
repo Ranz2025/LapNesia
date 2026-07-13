@@ -13,17 +13,15 @@ export default function Hero() {
             </span>
 
             <h1 className="text-6xl font-bold mt-6 leading-tight">
-              Cari Laptop Impianmu
-              <br />
-              Harga{" "}
+              Marketplace Laptop Bekas yang{" "}
               <span className="text-blue-600">
-                Terbaik
+                Aman dan Terpercaya.
               </span>
             </h1>
 
             <p className="mt-6 text-xl text-gray-600">
-              Temukan laptop baru maupun bekas berkualitas
-              dengan harga terbaik dan garansi terpercaya.
+              Belanja laptop bekas lebih aman dengan informasi produk yang transparan,
+              dan dapat diinspeksi oleh teknisi tersertifikasi.
             </p>
 
             <div className="flex gap-4 mt-8">

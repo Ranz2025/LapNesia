@@ -206,23 +206,26 @@ export default function SellerDashboard() {
 
         {/* ── Hero greeting ── */}
         <div
-          className="rounded-3xl overflow-hidden relative px-6 sm:px-10 py-7 sm:py-8 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-5"
-          style={{ background: GRAD_HERO_BG, border: `1px solid ${CLR_BORDER}` }}
+          className="rounded-3xl overflow-hidden relative px-6 sm:px-10 py-8 sm:py-10 mb-7 flex flex-col sm:flex-row sm:items-center justify-between gap-5"
+          style={{ background: GRAD_PRIMARY, boxShadow: "0 16px 40px -16px rgba(37,99,235,0.45)" }}
         >
-          <div className="absolute -top-16 -right-10 w-56 h-56 rounded-full opacity-20 blur-3xl pointer-events-none" style={{ background: "#2563EB" }} />
-          <div className="absolute -bottom-12 -left-12 w-44 h-44 rounded-full opacity-15 blur-3xl pointer-events-none" style={{ background: "#06B6D4" }} />
+          <div className="absolute -top-16 -right-10 w-56 h-56 rounded-full opacity-20 blur-3xl pointer-events-none" style={{ background: "#FFFFFF" }} />
+          <div className="absolute -bottom-12 -left-12 w-44 h-44 rounded-full opacity-15 blur-3xl pointer-events-none" style={{ background: "#FFFFFF" }} />
 
           <div className="relative">
             <div className="mb-2">
-              <SectionLabel icon={<Sparkles size={11} />} text="Seller Dashboard" />
-            </div>
-            <h1 className="text-2xl sm:text-3xl leading-tight mb-1" style={{ fontFamily: FONT_DISPLAY, fontWeight: 800, color: CLR_TEXT }}>
-              Halo, selamat datang{" "}
-              <span style={{ backgroundImage: GRAD_PRIMARY, WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" }}>
-                👋
+              <span
+                className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-widest px-3 py-1 rounded-full font-semibold"
+                style={{ color: "#FFFFFF", background: "rgba(255,255,255,0.18)", border: "1px solid rgba(255,255,255,0.30)" }}
+              >
+                <Sparkles size={11} /> Panel Seller
               </span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl leading-tight mb-1" style={{ fontFamily: FONT_DISPLAY, fontWeight: 800 }}>
+              <span className="text-white">Dashboard </span>
+              <span style={{ color: "#67E8F9" }}>Seller</span>
             </h1>
-            <p className="text-sm" style={{ color: CLR_MUTED }}>
+            <p className="text-sm" style={{ color: "rgba(255,255,255,0.85)" }}>
               Pantau toko dan kelola penjualanmu di satu tempat.
             </p>
           </div>
@@ -231,9 +234,7 @@ export default function SellerDashboard() {
             <button
               onClick={fetchStats}
               className="flex items-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-medium transition"
-              style={{ background: "#FFFFFF", border: `1px solid ${CLR_BORDER}`, color: CLR_MUTED }}
-              onMouseEnter={(e) => (e.currentTarget.style.borderColor = CLR_ACCENT)}
-              onMouseLeave={(e) => (e.currentTarget.style.borderColor = CLR_BORDER)}
+              style={{ background: "rgba(255,255,255,0.18)", border: "1px solid rgba(255,255,255,0.30)", color: "#FFFFFF" }}
             >
               <RefreshCw size={14} className={refreshing ? "animate-spin" : ""} />
               {refreshing ? "Memperbarui..." : "Refresh"}
@@ -241,7 +242,7 @@ export default function SellerDashboard() {
             <button
               onClick={() => navigate("/seller/add-product")}
               className="flex items-center gap-2 rounded-2xl px-5 py-2.5 text-sm font-semibold transition hover:brightness-110 active:scale-95"
-              style={{ background: GRAD_PRIMARY, color: "#0F172A", fontFamily: FONT_DISPLAY, boxShadow: "0 4px 16px rgba(37,99,235,0.30)" }}
+              style={{ background: "#FFFFFF", color: CLR_ACCENT, fontFamily: FONT_DISPLAY, boxShadow: "0 4px 16px rgba(0,0,0,0.15)" }}
             >
               <Plus size={15} /> Tambah Produk
             </button>
@@ -255,7 +256,7 @@ export default function SellerDashboard() {
         ) : (
           <>
             {/* ── Stat cards ── */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-7">
               <StatCard
                 icon={Wallet}
                 label="Saldo Tersedia"

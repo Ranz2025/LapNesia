@@ -66,15 +66,15 @@ const navLinks = [
 ];
 
 const trustBadges = [
-  { icon: <Shield size={13} />, text: "Inspeksi 25 titik" },
+  { icon: <Shield size={13} />, text: "Teknisi tersertifikasi" },
   { icon: <ShoppingBag size={13} />, text: "Escrow aman" },
-  { icon: <CheckCircle size={13} />, text: "Garansi mesin" },
+  { icon: <CheckCircle size={13} />, text: "Informasi transparan" },
 ];
 
 const contactInfo = [
   { icon: <MapPin size={13} />, text: "Yogyakarta, Indonesia" },
   { icon: <Phone size={13} />, text: "+62 812 3456 7890" },
-  { icon: <Mail size={13} />, text: "halo@lapnesia.id" },
+  { icon: <Mail size={13} />, text: "lapnesia@gmail.com" },
 ];
 
 const socials = [
@@ -100,7 +100,7 @@ export default function Footer() {
             <p className="text-[15px] sm:text-lg font-bold text-white" style={{ fontFamily: FONT_DISPLAY }}>
               Siap temukan laptop bekas idamanmu?
             </p>
-            <p className="text-xs sm:text-sm text-white/80 mt-1">Inspeksi 25 titik, escrow aman, garansi mesin.</p>
+            <p className="text-xs sm:text-sm text-white/80 mt-1">Teknisi tersertifikasi, escrow aman, informasi transparan.</p>
           </div>
           <a
             href="/laptop"
@@ -137,7 +137,7 @@ export default function Footer() {
                 </span>
               </div>
               <p className="text-sm leading-relaxed mb-6" style={{ color: CLR_MUTED, maxWidth: 300 }}>
-                Platform jual-beli laptop bekas terpercaya. Setiap unit diinspeksi 25 titik oleh teknisi terverifikasi sebelum tayang.
+                Belanja laptop bekas lebih aman dengan informasi produk yang transparan, dan dapat diinspeksi oleh teknisi tersertifikasi.
               </p>
 
               {/* Trust badges */}
