@@ -1,11 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-use App\Models\User;
 use App\Models\TechnicianAvailability;
+use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Database\Seeder;
 
 class TechnicianAvailabilitySeeder extends Seeder
 {
@@ -17,6 +19,7 @@ class TechnicianAvailabilitySeeder extends Seeder
 
         if ($technicians->isEmpty()) {
             $this->command->warn('Tidak ada teknisi aktif ditemukan.');
+
             return;
         }
 
@@ -33,11 +36,11 @@ class TechnicianAvailabilitySeeder extends Seeder
                 // Skip weekend jika mau, atau biarkan semua hari
                 foreach ($slots as $slot) {
                     TechnicianAvailability::firstOrCreate([
-                        'user_id'        => $technician->id,
+                        'user_id' => $technician->id,
                         'available_date' => $date->toDateString(),
-                        'start_time'     => $slot['start_time'],
+                        'start_time' => $slot['start_time'],
                     ], [
-                        'end_time'  => $slot['end_time'],
+                        'end_time' => $slot['end_time'],
                         'is_booked' => false,
                     ]);
                 }

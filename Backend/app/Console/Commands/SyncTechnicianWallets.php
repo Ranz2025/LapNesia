@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Console\Commands;
 
 use App\Models\User;
@@ -9,6 +11,7 @@ use Illuminate\Console\Command;
 class SyncTechnicianWallets extends Command
 {
     protected $signature = 'wallets:sync-technicians';
+
     protected $description = 'Create missing wallets for all existing technician users';
 
     public function handle(): int

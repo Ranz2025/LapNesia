@@ -1,11 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Models\Brand;
 use App\Models\Product;
 use App\Models\ProductImage;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -16,54 +19,61 @@ class ProductService
      */
     public function getProducts(array $filters): LengthAwarePaginator
     {
-        // Untuk halaman listing, tidak perlu eager-load inspectionJobs.report
-        // karena memperberat query secara signifikan. Hanya load relasi yang ditampilkan.
-        $query = Product::with(['brand', 'category', 'images'])
-            ->whereIn('status', ['active', 'sold']);
+        // Cache key based on query filters and pagination page
+        $page = request()->get('page', 1);
+        $cacheKey = 'products_list_'.md5(serialize($filters).'_'.$page);
 
-        if (!empty($filters['search'])) {
-            $search = $filters['search'];
-            $query->where(function($q) use ($search) {
-                $q->where('model', 'like', "%{$search}%")
-                  ->orWhere('cpu', 'like', "%{$search}%")
-                  ->orWhere('description', 'like', "%{$search}%");
-            });
-        }
+        return Cache::remember($cacheKey, now()->addMinutes(10), function () use ($filters) {
+            $query = Product::with(['brand', 'category', 'images'])
+                ->whereIn('status', ['active', 'sold']);
 
-        if (!empty($filters['brand'])) {
-            $query->whereHas('brand', function($q) use ($filters) {
-                $q->where('slug', $filters['brand']);
-            });
-        }
+            if (! empty($filters['search'])) {
+                $search = $filters['search'];
+                $query->where(function ($q) use ($search) {
+                    $q->where('model', 'like', "%{$search}%")
+                        ->orWhere('cpu', 'like', "%{$search}%")
+                        ->orWhere('description', 'like', "%{$search}%");
+                });
+            }
 
-        if (!empty($filters['category'])) {
-            $query->whereHas('category', function($q) use ($filters) {
-                $q->where('slug', $filters['category']);
-            });
-        }
+            if (! empty($filters['brand'])) {
+                $query->whereHas('brand', function ($q) use ($filters) {
+                    $q->where('slug', $filters['brand']);
+                });
+            }
 
-        if (!empty($filters['min_price'])) {
-            $query->where('price', '>=', $filters['min_price']);
-        }
+            if (! empty($filters['category'])) {
+                $query->whereHas('category', function ($q) use ($filters) {
+                    $q->where('slug', $filters['category']);
+                });
+            }
 
-        if (!empty($filters['max_price'])) {
-            $query->where('price', '<=', $filters['max_price']);
-        }
+            if (! empty($filters['min_price'])) {
+                $query->where('price', '>=', $filters['min_price']);
+            }
 
-        $sort = $filters['sort'] ?? 'latest';
-        switch ($sort) {
-            case 'price_asc':
-                $query->orderBy('price', 'asc');
-                break;
-            case 'price_desc':
-                $query->orderBy('price', 'desc');
-                break;
-            default:
-                $query->latest();
-                break;
-        }
+            if (! empty($filters['max_price'])) {
+                $query->where('price', '<=', $filters['max_price']);
+            }
 
-        return $query->paginate(50);
+            $sort = $filters['sort'] ?? 'latest';
+            switch ($sort) {
+                case 'price_asc':
+                    $query->orderBy('price', 'asc');
+
+                    break;
+                case 'price_desc':
+                    $query->orderBy('price', 'desc');
+
+                    break;
+                default:
+                    $query->latest();
+
+                    break;
+            }
+
+            return $query->paginate(50);
+        });
     }
 
     /**
@@ -79,11 +89,11 @@ class ProductService
     /**
      * Create a new product for a seller
      */
-    public function createProduct(array $data, string $sellerId): Product
+    public function createProduct(array $data, int $sellerId): Product
     {
         return DB::transaction(function () use ($data, $sellerId) {
             $brand = Brand::findOrFail($data['brand_id']);
-            $data['slug'] = $this->generateUniqueSlug($brand->name . ' ' . $data['model']);
+            $data['slug'] = $this->generateUniqueSlug($brand->name.' '.$data['model']);
             $data['seller_id'] = $sellerId;
             // Produk masuk status pending, menunggu inspeksi sebelum aktif
             $data['status'] = 'pending';
@@ -96,11 +106,11 @@ class ProductService
 
             $product = Product::create($data);
 
-            if (!empty($data['images'])) {
+            if (! empty($data['images'])) {
                 foreach ($data['images'] as $index => $imageUrl) {
                     ProductImage::create([
                         'product_id' => $product->id,
-                        'image_url'  => $imageUrl,
+                        'image_url' => $imageUrl,
                         'is_primary' => $index === 0,
                         'sort_order' => $index,
                     ]);
@@ -117,9 +127,9 @@ class ProductService
     public function updateProduct(Product $product, array $data): Product
     {
         return DB::transaction(function () use ($product, $data) {
-            if (!empty($data['model']) && $data['model'] !== $product->model) {
+            if (! empty($data['model']) && $data['model'] !== $product->model) {
                 $brandName = $product->brand->name;
-                $product->slug = $this->generateUniqueSlug($brandName . ' ' . $data['model']);
+                $product->slug = $this->generateUniqueSlug($brandName.' '.$data['model']);
             }
 
             $product->update($data);
@@ -146,7 +156,7 @@ class ProductService
         $count = 1;
 
         while (Product::where('slug', $slug)->exists()) {
-            $slug = $originalSlug . '-' . (++$count);
+            $slug = $originalSlug.'-'.(++$count);
         }
 
         return $slug;

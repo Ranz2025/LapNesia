@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Policies;
 
 use App\Models\Order;
@@ -18,16 +20,58 @@ class OrderPolicy
             return true;
         }
 
-        return (int) $order->buyer_id === (int) $user->id || (int) $order->seller_id === (int) $user->id;
+        return (int) $order->buyer_id === (int) $user->id
+            || (int) $order->seller_id === (int) $user->id;
+    }
+
+    public function create(User $user): bool
+    {
+        return $user->role === 'buyer';
     }
 
     public function cancel(User $user, Order $order): bool
     {
-        return (int) $order->buyer_id === (int) $user->id && $order->status === 'waiting_payment';
+        if (in_array($user->role, ['admin', 'owner'])) {
+            return $order->status === 'waiting_payment';
+        }
+
+        return (int) $order->buyer_id === (int) $user->id
+            && $order->status === 'waiting_payment';
+    }
+
+    public function ship(User $user, Order $order): bool
+    {
+        if (in_array($user->role, ['admin', 'owner'])) {
+            return $order->status === 'paid';
+        }
+
+        return (int) $order->seller_id === (int) $user->id
+            && $order->status === 'paid';
     }
 
     public function confirmReceived(User $user, Order $order): bool
     {
-        return (int) $order->buyer_id === (int) $user->id && $order->status === 'shipped';
+        if (in_array($user->role, ['admin', 'owner'])) {
+            return $order->status === 'shipped';
+        }
+
+        return (int) $order->buyer_id === (int) $user->id
+            && $order->status === 'shipped';
+    }
+
+    public function updateShippingAddress(User $user, Order $order): bool
+    {
+        return (int) $order->buyer_id === (int) $user->id
+            && $order->status === 'waiting_payment';
+    }
+
+    public function pay(User $user, Order $order): bool
+    {
+        return (int) $order->buyer_id === (int) $user->id;
+    }
+
+    public function rate(User $user, Order $order): bool
+    {
+        return (int) $order->buyer_id === (int) $user->id && $order->status === 'completed';
     }
 }

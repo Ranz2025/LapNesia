@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Notifications;
 
 use App\Models\Order;
@@ -12,18 +14,21 @@ class OrderPaidSellerNotification extends Notification
 
     public function __construct(public Order $order) {}
 
-    public function via(object $notifiable): array { return ['database']; }
+    public function via(object $notifiable): array
+    {
+        return ['database'];
+    }
 
     public function toDatabase(object $notifiable): array
     {
         return [
-            'type'         => 'order_paid_seller',
-            'title'        => 'Pembayaran Diterima',
-            'message'      => 'Pembeli telah melakukan pembayaran untuk pesanan ' . $this->order->order_number . '. Segera proses pengiriman.',
-            'order_id'     => $this->order->id,
+            'type' => 'order_paid_seller',
+            'title' => 'Pembayaran Diterima',
+            'message' => 'Pembeli telah melakukan pembayaran untuk pesanan '.$this->order->order_number.'. Segera proses pengiriman.',
+            'order_id' => $this->order->id,
             'order_number' => $this->order->order_number,
-            'amount'       => $this->order->total_amount,
-            'action_url'   => '/seller/orders',
+            'amount' => $this->order->total_amount,
+            'action_url' => '/seller/orders',
         ];
     }
 }

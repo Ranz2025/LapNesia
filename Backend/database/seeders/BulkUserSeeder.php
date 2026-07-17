@@ -1,11 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
+use App\Models\TechnicianProfile;
 use App\Models\User;
 use App\Models\Wallet;
-use App\Models\TechnicianProfile;
+use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
 class BulkUserSeeder extends Seeder
@@ -19,11 +21,11 @@ class BulkUserSeeder extends Seeder
             $user = User::updateOrCreate(
                 ['email' => "seller{$i}@example.com"],
                 [
-                    'name'     => "Seller $i",
-                    'phone'    => '0812' . str_pad($i, 8, '0', STR_PAD_LEFT),
+                    'name' => "Seller $i",
+                    'phone' => '0812'.str_pad($i, 8, '0', STR_PAD_LEFT),
                     'password' => $password,
-                    'role'     => 'seller',
-                    'status'   => 'active',
+                    'role' => 'seller',
+                    'status' => 'active',
                 ]
             );
 
@@ -38,11 +40,11 @@ class BulkUserSeeder extends Seeder
             $user = User::updateOrCreate(
                 ['email' => "tech{$i}@example.com"],
                 [
-                    'name'     => "Technician $i",
-                    'phone'    => '0813' . str_pad($i, 8, '0', STR_PAD_LEFT),
+                    'name' => "Technician $i",
+                    'phone' => '0813'.str_pad($i, 8, '0', STR_PAD_LEFT),
                     'password' => $password,
-                    'role'     => 'technician',
-                    'status'   => 'pending',
+                    'role' => 'technician',
+                    'status' => 'pending',
                 ]
             );
 
@@ -54,8 +56,8 @@ class BulkUserSeeder extends Seeder
             TechnicianProfile::firstOrCreate(
                 ['user_id' => $user->id],
                 [
-                    'bio'            => "Teknisi profesional $i berpengalaman di bidang hardware laptop.",
-                    'skills'         => 'Diagnosa hardware, cek baterai, layar, keyboard, storage',
+                    'bio' => "Teknisi profesional $i berpengalaman di bidang hardware laptop.",
+                    'skills' => 'Diagnosa hardware, cek baterai, layar, keyboard, storage',
                     'inspection_fee' => 150000,
                 ]
             );
@@ -66,11 +68,11 @@ class BulkUserSeeder extends Seeder
             $user = User::updateOrCreate(
                 ['email' => "buyer{$i}@example.com"],
                 [
-                    'name'     => "Buyer $i",
-                    'phone'    => '0814' . str_pad($i, 8, '0', STR_PAD_LEFT),
+                    'name' => "Buyer $i",
+                    'phone' => '0814'.str_pad($i, 8, '0', STR_PAD_LEFT),
                     'password' => $password,
-                    'role'     => 'buyer',
-                    'status'   => 'active',
+                    'role' => 'buyer',
+                    'status' => 'active',
                 ]
             );
 

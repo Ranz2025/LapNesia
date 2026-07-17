@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Events\InspectionReportPublishedEvent;
@@ -11,12 +13,12 @@ use Illuminate\Validation\ValidationException;
 
 class InspectionReportService
 {
-    public function create(array $data, string $technicianId): InspectionReport
+    public function create(array $data, int $technicianId): InspectionReport
     {
         return DB::transaction(function () use ($data, $technicianId) {
             $job = InspectionJob::with(['product', 'requester'])->find($data['job_id']);
 
-            if (!$job || (int) $job->technician_id !== (int) $technicianId) {
+            if (! $job || (int) $job->technician_id !== (int) $technicianId) {
                 throw ValidationException::withMessages([
                     'job_id' => ['Job tidak ditemukan atau Anda bukan teknisi yang ditugaskan.'],
                 ]);
@@ -37,8 +39,8 @@ class InspectionReportService
             $publishedAt = now();
             $report = InspectionReport::create(array_merge($data, [
                 'technician_id' => $technicianId,
-                'published_at'  => $publishedAt,
-                'expires_at'    => $publishedAt->copy()->addDays(14),
+                'published_at' => $publishedAt,
+                'expires_at' => $publishedAt->copy()->addDays(14),
             ]));
 
             // Mark product as spec verified
@@ -53,7 +55,7 @@ class InspectionReportService
         });
     }
 
-    public function find(string $id): ?InspectionReport
+    public function find(int $id): ?InspectionReport
     {
         return InspectionReport::with(['job.product', 'technician', 'photos'])->find($id);
     }

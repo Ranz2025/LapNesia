@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Policies;
 
 use App\Models\InspectionReport;
@@ -7,10 +9,6 @@ use App\Models\User;
 
 class InspectionReportPolicy
 {
-    /**
-     * Hanya teknisi yang mengerjakan, pembeli yang memesan, atau admin/owner
-     * yang boleh melihat detail laporan inspeksi.
-     */
     public function view(User $user, InspectionReport $report): bool
     {
         return (int) $user->id === (int) $report->technician_id
@@ -18,10 +16,22 @@ class InspectionReportPolicy
             || in_array($user->role, ['admin', 'owner']);
     }
 
-    /**
-     * Hanya pembeli yang memesan inspeksi, teknisi yang mengerjakan,
-     * atau admin/owner yang boleh mengunduh PDF laporan.
-     */
+    public function create(User $user): bool
+    {
+        return in_array($user->role, ['technician', 'admin']);
+    }
+
+    public function uploadPhoto(User $user, InspectionReport $report): bool
+    {
+        return (int) $user->id === (int) $report->technician_id
+            || in_array($user->role, ['admin']);
+    }
+
+    public function deletePhoto(User $user, InspectionReport $report): bool
+    {
+        return $this->uploadPhoto($user, $report);
+    }
+
     public function downloadPdf(User $user, InspectionReport $report): bool
     {
         return (int) $user->id === (int) $report->job?->requested_by

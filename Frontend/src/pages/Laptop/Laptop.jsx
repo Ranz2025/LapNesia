@@ -92,7 +92,9 @@ export default function Laptop() {
       if (q2)    filters.search = q2;
       if (brand) filters.brand  = brand;
       const res = await getAllProducts(filters);
-      setProducts(res.data || []);
+      // Memastikan products selalu Array, baik jika res.data adalah array atau object beranak data
+      const dataArray = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+      setProducts(dataArray);
     } catch { setError("Gagal memuat produk."); }
     finally   { setLoading(false); }
   };
@@ -102,7 +104,7 @@ export default function Laptop() {
 
   const hasActiveFilter = Boolean(search || brand);
 
-  const sortedProducts = [...products].sort((a, b) => {
+  const sortedProducts = [...(products || [])].sort((a, b) => {
     if (sort === "price_asc")  return Number(a.price) - Number(b.price);
     if (sort === "price_desc") return Number(b.price) - Number(a.price);
     if (sort === "rating")     return (b.avg_rating || 0) - (a.avg_rating || 0);

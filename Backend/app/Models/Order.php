@@ -1,12 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
 class Order extends Model
 {
-
     protected $fillable = [
         'order_number',
         'product_id',
@@ -40,37 +41,37 @@ class Order extends Model
         'total_amount' => 'decimal:2',
     ];
 
-    public function buyer()
+    public function buyer(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(User::class, 'buyer_id');
     }
 
-    public function seller()
+    public function seller(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(User::class, 'seller_id');
     }
 
-    public function product()
+    public function product(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(Product::class);
     }
 
-    public function payments()
+    public function payments(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(Payment::class);
     }
 
-    public function rating()
+    public function rating(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
         return $this->hasOne(Rating::class);
     }
 
-    public function walletTransactions()
+    public function walletTransactions(): \Illuminate\Database\Eloquent\Relations\MorphMany
     {
         return $this->morphMany(WalletTransaction::class, 'reference');
     }
 
-    public function productReturn()
+    public function productReturn(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
         return $this->hasOne(ProductReturn::class);
     }

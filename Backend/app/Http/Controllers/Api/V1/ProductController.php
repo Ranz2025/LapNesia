@@ -1,82 +1,141 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreProductRequest;
 use App\Http\Requests\UpdateProductRequest;
-use App\Http\Resources\ProductCollection;
-use App\Http\Resources\ProductResource;
 use App\Models\Product;
-use App\Services\ProductService;
 use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Str;
 
 class ProductController extends Controller
 {
     use ApiResponse;
 
-    public function __construct(protected ProductService $productService) {}
-
-    public function index(Request $request): ProductCollection
+    /** Public: list products with pagination */
+    public function index(Request $request): JsonResponse
     {
-        $products = $this->productService->getProducts($request->all());
-        return new ProductCollection($products);
+        $query = Product::with(['brand', 'category', 'images', 'seller:id,name,profile_photo_url'])
+            ->where('status', 'active');
+
+        if ($request->brand_id) {
+            $query->where('brand_id', $request->brand_id);
+        }
+        if ($request->category_id) {
+            $query->where('category_id', $request->category_id);
+        }
+        if ($request->search) {
+            $query->where('model', 'like', '%'.$request->search.'%');
+        }
+        if ($request->min_price) {
+            $query->where('price', '>=', $request->min_price);
+        }
+        if ($request->max_price) {
+            $query->where('price', '<=', $request->max_price);
+        }
+        if ($request->condition) {
+            $query->where('condition', $request->condition);
+        }
+        if ($request->location) {
+            $query->where('location', 'like', '%'.$request->location.'%');
+        }
+
+        $sortField = $request->get('sort_by', 'created_at');
+        $sortDir = $request->get('sort_dir', 'desc');
+        $allowedSorts = ['price', 'created_at', 'avg_rating'];
+        if (in_array($sortField, $allowedSorts)) {
+            $query->orderBy($sortField, $sortDir === 'asc' ? 'asc' : 'desc');
+        }
+
+        $products = $query->paginate($request->get('per_page', 12));
+
+        return $this->successResponse($products);
     }
 
-    public function sellerProducts(Request $request): JsonResponse
-    {
-        $products = Product::where('seller_id', $request->user()->id)
-            ->with(['brand', 'category', 'images', 'seller'])
-            ->latest()->paginate(12);
-        return $this->successResponse(new ProductCollection($products));
-    }
-
-    public function sellerProduct(Request $request, string $id): JsonResponse
-    {
-        $product = Product::where('seller_id', $request->user()->id)
-            ->where('id', $id)
-            ->with(['brand', 'category', 'images', 'seller'])
-            ->firstOrFail();
-        return $this->successResponse(new ProductResource($product));
-    }
-
+    /** Public: show single product by slug */
     public function show(string $slug): JsonResponse
     {
-        $product = $this->productService->getProductBySlug($slug);
-        if (!$product) return $this->errorResponse('Produk tidak ditemukan.', 404);
-        return $this->successResponse(new ProductResource($product));
+        $product = Product::with(['brand', 'category', 'images', 'seller:id,name,profile_photo_url,avg_rating'])
+            ->where('slug', $slug)
+            ->firstOrFail();
+
+        return $this->successResponse($product);
     }
 
+    /** Seller: list own products */
+    public function sellerProducts(Request $request): JsonResponse
+    {
+        Gate::authorize('viewAny', Product::class);
+
+        $products = Product::with(['brand', 'category', 'images'])
+            ->where('seller_id', $request->user()->id)
+            ->latest()
+            ->paginate(15);
+
+        return $this->successResponse($products);
+    }
+
+    /** Seller: show own single product */
+    public function sellerProduct(Request $request, string $id): JsonResponse
+    {
+        $product = Product::with(['brand', 'category', 'images'])->findOrFail($id);
+
+        Gate::authorize('update', $product);
+
+        return $this->successResponse($product);
+    }
+
+    /** Seller: store new product */
     public function store(StoreProductRequest $request): JsonResponse
     {
-        $product = $this->productService->createProduct($request->validated(), $request->user()->id);
-        return $this->successResponse(new ProductResource($product), 'Produk berhasil ditambahkan.', 201);
+        Gate::authorize('create', Product::class);
+
+        $data = $request->validated();
+        $data['seller_id'] = $request->user()->id;
+        $data['slug'] = Str::slug($data['model'].'-'.Str::random(6));
+        $data['status'] = 'active';
+
+        $images = $data['images'] ?? [];
+        unset($data['images']);
+
+        $product = Product::create($data);
+
+        if (! empty($images)) {
+            foreach ($images as $i => $url) {
+                $product->images()->create(['image_url' => $url, 'sort_order' => $i]);
+            }
+        }
+
+        return $this->successResponse($product->load(['brand', 'category', 'images']), 'Produk berhasil ditambahkan.', 201);
     }
 
+    /** Seller: update product */
     public function update(UpdateProductRequest $request, string $id): JsonResponse
     {
         $product = Product::findOrFail($id);
-        if (Gate::denies('update', $product)) {
-            return $this->errorResponse('Tidak memiliki izin.', 403);
-        }
-        $updated = $this->productService->updateProduct($product, $request->validated());
-        return $this->successResponse(new ProductResource($updated), 'Produk berhasil diperbarui.');
+
+        Gate::authorize('update', $product);
+
+        $product->update($request->validated());
+
+        return $this->successResponse($product->fresh()->load(['brand', 'category', 'images']), 'Produk berhasil diperbarui.');
     }
 
-    /** Archive product — no hard delete (BR-16) */
+    /** Seller: archive product (soft delete) */
     public function archive(Request $request, string $id): JsonResponse
     {
         $product = Product::findOrFail($id);
-        if (Gate::denies('update', $product)) {
-            return $this->errorResponse('Tidak memiliki izin.', 403);
-        }
-        if (in_array($product->status, ['booked', 'paid'])) {
-            return $this->errorResponse('Produk sedang dalam proses transaksi aktif.', 422);
-        }
+
+        Gate::authorize('archive', $product);
+
         $product->update(['status' => 'archived']);
-        return $this->successResponse(null, 'Produk berhasil diarsipkan.');
+
+        return $this->successResponse($product->fresh(), 'Produk berhasil diarsipkan.');
     }
 }

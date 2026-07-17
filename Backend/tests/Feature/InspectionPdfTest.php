@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Feature;
 
 use App\Models\Brand;
@@ -22,8 +24,8 @@ class InspectionPdfTest extends TestCase
     {
         $user = User::create([
             'name' => ucfirst($role),
-            'email' => $role . '@lapnesia.com',
-            'phone' => '08' . rand(100000000, 999999999),
+            'email' => $role.'@lapnesia.com',
+            'phone' => '08'.rand(100000000, 999999999),
             'password' => bcrypt('password'),
             'role' => $role,
             'status' => 'active',
@@ -49,7 +51,7 @@ class InspectionPdfTest extends TestCase
             'brand_id' => $brand->id,
             'category_id' => $cat->id,
             'model' => 'PDF Laptop',
-            'slug' => 'pdf-laptop-' . uniqid(),
+            'slug' => 'pdf-laptop-'.uniqid(),
             'cpu' => 'i5',
             'ram' => 8,
             'storage' => 256,
@@ -106,6 +108,6 @@ class InspectionPdfTest extends TestCase
         $this->assertNotNull($report->pdf_url);
         $this->assertSame($url, $report->pdf_url);
 
-        Storage::disk('public')->assertExists('inspections/' . $report->id . '.pdf');
+        Storage::disk('public')->assertExists('inspections/'.$report->id.'.pdf');
     }
 }

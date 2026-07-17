@@ -1,20 +1,22 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-use App\Models\Product;
-use App\Models\ProductImage;
 use App\Models\Brand;
 use App\Models\Category;
+use App\Models\Product;
+use App\Models\ProductImage;
 use App\Models\User;
+use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 
 class SellerProductSeeder extends Seeder
 {
     public function run(): void
     {
-        $brands     = Brand::pluck('id', 'name');
+        $brands = Brand::pluck('id', 'name');
         $categories = Category::pluck('id', 'name');
 
         // Pool 100 variasi produk (dirotasi per seller)
@@ -63,7 +65,7 @@ class SellerProductSeeder extends Seeder
         ];
 
         $locations = ['Jakarta', 'Bandung', 'Surabaya', 'Yogyakarta', 'Medan', 'Semarang', 'Makassar', 'Palembang'];
-        $poolSize  = count($pool);
+        $poolSize = count($pool);
         $imageBase = 100; // offset agar tidak bentrok dengan seeder lain
 
         $sellers = User::where('email', 'like', 'seller%@example.com')
@@ -72,52 +74,54 @@ class SellerProductSeeder extends Seeder
 
         if ($sellers->isEmpty()) {
             $this->command->warn('⚠️  Tidak ada seller@example.com. Jalankan BulkUserSeeder dulu.');
+
             return;
         }
 
         $idx = 0;
         foreach ($sellers as $sellerNo => $seller) {
             for ($p = 0; $p < 5; $p++) {
-                $data       = $pool[$idx % $poolSize];
-                $brandId    = $brands[$data['brand']]     ?? null;
+                $data = $pool[$idx % $poolSize];
+                $brandId = $brands[$data['brand']] ?? null;
                 $categoryId = $categories[$data['category']] ?? null;
 
-                if (!$brandId || !$categoryId) {
+                if (! $brandId || ! $categoryId) {
                     $idx++;
+
                     continue;
                 }
 
                 // Slug unik
-                $base = Str::slug($data['brand'] . ' ' . $data['model']);
+                $base = Str::slug($data['brand'].' '.$data['model']);
                 $slug = $base;
-                $c    = 2;
+                $c = 2;
                 while (Product::where('slug', $slug)->exists()) {
-                    $slug = $base . '-' . $c++;
+                    $slug = $base.'-'.$c++;
                 }
 
                 $product = Product::create([
-                    'seller_id'    => $seller->id,
-                    'brand_id'     => $brandId,
-                    'category_id'  => $categoryId,
-                    'model'        => $data['model'],
-                    'slug'         => $slug,
-                    'cpu'          => $data['cpu'],
-                    'ram'          => $data['ram'],
-                    'storage'      => $data['storage'],
+                    'seller_id' => $seller->id,
+                    'brand_id' => $brandId,
+                    'category_id' => $categoryId,
+                    'model' => $data['model'],
+                    'slug' => $slug,
+                    'cpu' => $data['cpu'],
+                    'ram' => $data['ram'],
+                    'storage' => $data['storage'],
                     'storage_type' => $data['storage_type'],
-                    'gpu'          => $data['gpu'],
-                    'screen_size'  => $data['screen_size'],
-                    'price'        => $data['price'],
-                    'condition'    => $data['condition'],
-                    'location'     => $locations[($sellerNo + $p) % count($locations)],
-                    'description'  => 'Laptop ' . $data['brand'] . ' ' . $data['model'] . ' kondisi ' . str_replace('_', ' ', $data['condition']) . '. Siap pakai, bisa COD area ' . $locations[($sellerNo + $p) % count($locations)] . '.',
-                    'status'       => 'active',
-                    'stock'        => ($idx % 3) + 1, // rotasi 1, 2, 3
+                    'gpu' => $data['gpu'],
+                    'screen_size' => $data['screen_size'],
+                    'price' => $data['price'],
+                    'condition' => $data['condition'],
+                    'location' => $locations[($sellerNo + $p) % count($locations)],
+                    'description' => 'Laptop '.$data['brand'].' '.$data['model'].' kondisi '.str_replace('_', ' ', $data['condition']).'. Siap pakai, bisa COD area '.$locations[($sellerNo + $p) % count($locations)].'.',
+                    'status' => 'active',
+                    'stock' => ($idx % 3) + 1, // rotasi 1, 2, 3
                 ]);
 
                 ProductImage::create([
                     'product_id' => $product->id,
-                    'image_url'  => 'https://picsum.photos/400/300?random=' . ($imageBase + $idx),
+                    'image_url' => 'https://picsum.photos/400/300?random='.($imageBase + $idx),
                     'is_primary' => true,
                     'sort_order' => 0,
                 ]);

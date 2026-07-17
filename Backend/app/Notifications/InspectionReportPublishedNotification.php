@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Notifications;
 
 use App\Models\InspectionReport;
@@ -20,11 +22,11 @@ class InspectionReportPublishedNotification extends Notification
     public function toDatabase(object $notifiable): array
     {
         return [
-            'type'       => 'inspection_report_published',
-            'title'      => 'Laporan Inspeksi Diterbitkan',
-            'message'    => 'Laporan inspeksi untuk pesanan Anda telah diterbitkan.',
-            'report_id'  => $this->report->id,
-            'product'    => $this->report->job->product->model,
+            'type' => 'inspection_report_published',
+            'title' => 'Laporan Inspeksi Diterbitkan',
+            'message' => 'Laporan inspeksi untuk pesanan Anda telah diterbitkan.',
+            'report_id' => $this->report->id,
+            'product' => $this->report->job->product->model,
         ];
     }
 }

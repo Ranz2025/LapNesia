@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -19,10 +21,13 @@ return new class extends Migration
                 'inspection_income_release',
                 'withdraw',
                 'refund',
-                'platform_fee_adjustment',
-                'escrow_release',
-                'freeze_for_withdrawal',
+                'freeze',
                 'release_freeze',
+                'hold_escrow',
+                'release_escrow',
+                'withdrawal_rejected',
+                'return_refund',
+                'escrow_release', // added escrow_release
             ]);
             $table->enum('status', ['escrow', 'released', 'refunded', 'completed'])->default('completed');
             $table->decimal('amount', 15, 2);

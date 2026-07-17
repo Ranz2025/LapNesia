@@ -1,9 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use App\Http\Resources\NotificationCollection;
 use App\Http\Resources\NotificationResource;
 use App\Services\NotificationService;
 use App\Traits\ApiResponse;
@@ -20,34 +21,30 @@ class NotificationController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        if (Gate::denies('viewAny', DatabaseNotification::class)) {
-            return $this->errorResponse('Anda tidak memiliki akses.', 403);
-        }
+        Gate::authorize('viewAny', DatabaseNotification::class);
 
         $notifications = $this->service->getNotifications($request->user());
         $unreadCount = $this->service->getUnreadCount($request->user());
 
         return $this->successResponse([
-            'data'          => NotificationResource::collection($notifications->items()),
-            'total'         => $notifications->total(),
-            'per_page'      => $notifications->perPage(),
-            'current_page'  => $notifications->currentPage(),
-            'unread_count'  => $unreadCount,
+            'data' => NotificationResource::collection($notifications->items()),
+            'total' => $notifications->total(),
+            'per_page' => $notifications->perPage(),
+            'current_page' => $notifications->currentPage(),
+            'unread_count' => $unreadCount,
         ]);
     }
 
     public function unread(Request $request): JsonResponse
     {
-        if (Gate::denies('viewAny', DatabaseNotification::class)) {
-            return $this->errorResponse('Anda tidak memiliki akses.', 403);
-        }
+        Gate::authorize('viewAny', DatabaseNotification::class);
 
         $notifications = $this->service->getUnreadNotifications($request->user());
 
         return $this->successResponse([
-            'data'         => NotificationResource::collection($notifications->items()),
-            'total'        => $notifications->total(),
-            'per_page'     => $notifications->perPage(),
+            'data' => NotificationResource::collection($notifications->items()),
+            'total' => $notifications->total(),
+            'per_page' => $notifications->perPage(),
             'current_page' => $notifications->currentPage(),
         ]);
     }
@@ -56,13 +53,11 @@ class NotificationController extends Controller
     {
         $notification = $request->user()->notifications()->find($id);
 
-        if (!$notification) {
+        if (! $notification) {
             return $this->errorResponse('Notifikasi tidak ditemukan.', 404);
         }
 
-        if (Gate::denies('update', $notification)) {
-            return $this->errorResponse('Anda tidak memiliki akses.', 403);
-        }
+        Gate::authorize('update', $notification);
 
         $notification = $this->service->markAsRead($request->user(), $id);
 
@@ -71,9 +66,7 @@ class NotificationController extends Controller
 
     public function readAll(Request $request): JsonResponse
     {
-        if (Gate::denies('viewAny', DatabaseNotification::class)) {
-            return $this->errorResponse('Anda tidak memiliki akses.', 403);
-        }
+        Gate::authorize('viewAny', DatabaseNotification::class);
 
         $count = $this->service->markAllAsRead($request->user());
 

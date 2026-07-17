@@ -1,9 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\StoreWithdrawalRequest;
 use App\Http\Resources\WithdrawalCollection;
 use App\Http\Resources\WithdrawalResource;
 use App\Models\Wallet;
@@ -22,9 +23,7 @@ class WithdrawalController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        if (Gate::denies('viewAny', Withdrawal::class)) {
-            return $this->errorResponse('Anda tidak memiliki akses.', 403);
-        }
+        Gate::authorize('viewAny', Withdrawal::class);
 
         $user = $request->user();
         $query = Withdrawal::with(['wallet', 'approver']);
@@ -39,17 +38,23 @@ class WithdrawalController extends Controller
         return $this->successResponse(new WithdrawalCollection($withdrawals));
     }
 
-    public function store(StoreWithdrawalRequest $request): JsonResponse
+    public function store(Request $request): JsonResponse
     {
-        if (Gate::denies('create', Withdrawal::class)) {
-            return $this->errorResponse('Anda tidak memiliki akses.', 403);
-        }
+        Gate::authorize('create', Withdrawal::class);
+
+        // Manual validation based on StoreWithdrawalRequest rules
+        $request->validate([
+            'amount' => 'required|numeric|min:10000',
+            'bank_name' => 'required|string|max:255',
+            'account_name' => 'required|string|max:255',
+            'account_number' => 'required|string|max:255',
+        ]);
 
         try {
             $wallet = Wallet::where('user_id', $request->user()->id)->lockForUpdate()->firstOrFail();
-            $withdrawal = $this->service->create($wallet, $request->validated());
+            $withdrawal = $this->service->create($wallet, $request->only(['amount', 'bank_name', 'account_name', 'account_number']));
 
-            return $this->successResponse(new WithdrawalResource($withdrawal->load(['wallet', 'approver'])), 'Penarikan dana berhasil diproses dan disetujui.', 201);
+            return $this->successResponse(new WithdrawalResource($withdrawal->load(['wallet', 'approver'])), 'Permintaan penarikan dana berhasil dibuat dan menunggu persetujuan.', 201);
         } catch (\Exception $e) {
             return $this->errorResponse($e->getMessage(), 422);
         }
@@ -59,9 +64,7 @@ class WithdrawalController extends Controller
     {
         $withdrawal = Withdrawal::with(['wallet', 'approver'])->findOrFail($id);
 
-        if (Gate::denies('view', $withdrawal)) {
-            return $this->errorResponse('Anda tidak memiliki akses.', 403);
-        }
+        Gate::authorize('view', $withdrawal);
 
         return $this->successResponse(new WithdrawalResource($withdrawal));
     }

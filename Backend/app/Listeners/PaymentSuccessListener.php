@@ -1,9 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Listeners;
 
-use App\Events\PaymentSuccessEvent;
 use App\Events\DashboardRevenueUpdated;
+use App\Events\PaymentSuccessEvent;
 use App\Notifications\OrderPaidSellerNotification;
 use App\Notifications\PaymentSuccessNotification;
 use Carbon\Carbon;

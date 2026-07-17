@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 
@@ -19,14 +21,15 @@ return new class extends Migration
                 ), 0)
             ");
 
-            DB::statement("
+            DB::statement('
                 UPDATE technician_profiles
                 SET rating_avg = COALESCE((
                     SELECT ROUND(AVG(rating), 2)
                     FROM inspection_ratings
                     WHERE inspection_ratings.technician_id = technician_profiles.user_id
                 ), 0.00)
-            ");
+            ');
+
             return;
         }
 
@@ -43,7 +46,7 @@ return new class extends Migration
         ");
 
         // Update rating_avg dari inspection_ratings
-        DB::statement("
+        DB::statement('
             UPDATE technician_profiles tp
             JOIN (
                 SELECT technician_id, ROUND(AVG(rating), 2) as avg_rating
@@ -51,7 +54,7 @@ return new class extends Migration
                 GROUP BY technician_id
             ) r ON r.technician_id = tp.user_id
             SET tp.rating_avg = r.avg_rating
-        ");
+        ');
     }
 
     public function down(): void
@@ -59,7 +62,7 @@ return new class extends Migration
         // Reset ke 0
         DB::table('technician_profiles')->update([
             'total_inspections' => 0,
-            'rating_avg'        => 0.00,
+            'rating_avg' => 0.00,
         ]);
     }
 };

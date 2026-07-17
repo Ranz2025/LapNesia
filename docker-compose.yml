@@ -1,0 +1,136 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+      target: dev
+    container_name: lapnesia-backend
+    restart: unless-stopped
+    working_dir: /var/www/backend
+    volumes:
+      - ./Backend:/var/www/backend
+    env_file:
+      - ./Backend/.env
+    environment:
+      - DB_HOST=mysql
+      - REDIS_HOST=redis
+    networks:
+      - lapnesia-network
+    depends_on:
+      - mysql
+      - redis
+
+  frontend:
+    image: node:20-alpine
+    container_name: lapnesia-frontend
+    working_dir: /var/www/frontend
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    volumes:
+      - ./Frontend:/var/www/frontend
+    ports:
+      - "5173:5173"
+    networks:
+      - lapnesia-network
+    environment:
+      - VITE_API_BASE_URL=http://localhost/api/v1
+      - CHOKIDAR_USEPOLLING=true
+
+  nginx:
+    image: nginx:alpine
+    container_name: lapnesia-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./Backend/public:/var/www/backend/public
+      - ./docker/nginx/conf.d/dev.conf:/etc/nginx/conf.d/default.conf
+    networks:
+      - lapnesia-network
+    depends_on:
+      - backend
+      - frontend
+
+  mysql:
+    image: mysql:8.0
+    container_name: lapnesia-mysql
+    restart: unless-stopped
+    env_file:
+      - ./Backend/.env
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:-lapnesia}
+      MYSQL_USER: ${DB_USERNAME:-lapnesia_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-secret}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-secret}
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - lapnesia-network
+    ports:
+      - "3306:3306"
+
+  redis:
+    image: redis:7-alpine
+    container_name: lapnesia-redis
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+    networks:
+      - lapnesia-network
+    ports:
+      - "6379:6379"
+
+  queue:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+      target: dev
+    container_name: lapnesia-queue
+    restart: unless-stopped
+    working_dir: /var/www/backend
+    command: php artisan queue:work redis --sleep=3 --tries=3 --timeout=90
+    volumes:
+      - ./Backend:/var/www/backend
+    env_file:
+      - ./Backend/.env
+    environment:
+      - DB_HOST=mysql
+      - REDIS_HOST=redis
+    networks:
+      - lapnesia-network
+    depends_on:
+      - backend
+      - redis
+      - mysql
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+      target: dev
+    container_name: lapnesia-scheduler
+    restart: unless-stopped
+    working_dir: /var/www/backend
+    command: php artisan schedule:work
+    volumes:
+      - ./Backend:/var/www/backend
+    env_file:
+      - ./Backend/.env
+    environment:
+      - DB_HOST=mysql
+      - REDIS_HOST=redis
+    networks:
+      - lapnesia-network
+    depends_on:
+      - backend
+      - redis
+      - mysql
+
+volumes:
+  mysql-data:
+  redis-data:
+
+networks:
+  lapnesia-network:
+    driver: bridge

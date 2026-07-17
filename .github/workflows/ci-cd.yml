@@ -1,0 +1,300 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  lint:
+    name: Lint & Code Quality
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo, pdo_mysql, mbstring, xml, curl, gd, redis, bcmath
+          coverage: pcov
+
+      - name: Install Dependencies
+        working-directory: ./Backend
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Run PHPStan
+        working-directory: ./Backend
+        run: ./vendor/bin/phpstan analyse --memory-limit=512M
+
+      - name: Run Pint (PHP Code Formatter)
+        working-directory: ./Backend
+        run: ./vendor/bin/pint --test
+
+      - name: Check Code Style
+        working-directory: ./Backend
+        run: ./vendor/bin/pint --test --verbose 2>&1 || true
+
+  test:
+    name: Unit & Feature Tests
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mariadb:10.6
+        env:
+          MYSQL_DATABASE: testing
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_PASSWORD: testing
+          MYSQL_USER: testing
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+        ports:
+          - 3306:3306
+
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+        ports:
+          - 6379:6379
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo, pdo_mysql, mbstring, xml, curl, gd, redis, bcmath
+          coverage: pcov
+
+      - name: Install Dependencies
+        working-directory: ./Backend
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Create .env for Testing
+        working-directory: ./Backend
+        run: |
+          cp .env.example .env.testing
+          echo "DB_CONNECTION=mysql" >> .env.testing
+          echo "DB_HOST=127.0.0.1" >> .env.testing
+          echo "DB_PORT=3306" >> .env.testing
+          echo "DB_DATABASE=testing" >> .env.testing
+          echo "DB_USERNAME=testing" >> .env.testing
+          echo "DB_PASSWORD=testing" >> .env.testing
+          echo "CACHE_DRIVER=redis" >> .env.testing
+          echo "QUEUE_CONNECTION=redis" >> .env.testing
+          echo "REDIS_HOST=127.0.0.1" >> .env.testing
+
+      - name: Generate Application Key
+        working-directory: ./Backend
+        run: php artisan key:generate --env=testing
+
+      - name: Run Migrations
+        working-directory: ./Backend
+        env:
+          DB_CONNECTION: mysql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_DATABASE: testing
+          DB_USERNAME: testing
+          DB_PASSWORD: testing
+        run: php artisan migrate --env=testing
+
+      - name: Run Tests
+        working-directory: ./Backend
+        env:
+          DB_CONNECTION: mysql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_DATABASE: testing
+          DB_USERNAME: testing
+          DB_PASSWORD: testing
+        run: php artisan test --coverage --coverage-html=coverage --coverage-clover=coverage.xml
+
+      - name: Upload Coverage Reports
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./Backend/coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+          verbose: true
+
+      - name: Archive Coverage Report
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-report
+          path: Backend/coverage/
+          retention-days: 30
+
+  build-frontend:
+    name: Build Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: Frontend/package-lock.json
+
+      - name: Install Dependencies
+        working-directory: ./Frontend
+        run: npm ci
+
+      - name: Build
+        working-directory: ./Frontend
+        run: npm run build
+
+      - name: Archive Build
+        uses: actions/upload-artifact@v3
+        with:
+          name: frontend-build
+          path: Frontend/dist/
+          retention-days: 5
+
+  docker-build:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+    permissions:
+      contents: read
+      packages: write
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Metadata
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo, pdo_mysql, mbstring, xml, curl, gd, redis, bcmath
+
+      - name: Install Dependencies
+        working-directory: ./Backend
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Run Security Checker
+        working-directory: ./Backend
+        run: composer audit
+
+      - name: SonarQube Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        if: env.SONAR_TOKEN != ''
+
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [docker-build, test]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Deploy to Staging
+        env:
+          DEPLOY_KEY: ${{ secrets.STAGING_DEPLOY_KEY }}
+          DEPLOY_HOST: ${{ secrets.STAGING_DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.STAGING_DEPLOY_USER }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$DEPLOY_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H $DEPLOY_HOST >> ~/.ssh/known_hosts
+          ssh -i ~/.ssh/deploy_key $DEPLOY_USER@$DEPLOY_HOST << 'EOF'
+            cd /app/lapnesia
+            docker-compose pull
+            docker-compose up -d
+            docker-compose exec -T app php artisan migrate --force
+          EOF
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [docker-build, test, security-scan]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment: production
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Deploy to Production
+        env:
+          DEPLOY_KEY: ${{ secrets.PROD_DEPLOY_KEY }}
+          DEPLOY_HOST: ${{ secrets.PROD_DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.PROD_DEPLOY_USER }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$DEPLOY_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H $DEPLOY_HOST >> ~/.ssh/known_hosts
+          ssh -i ~/.ssh/deploy_key $DEPLOY_USER@$DEPLOY_HOST << 'EOF'
+            cd /app/lapnesia
+            docker-compose pull
+            docker-compose up -d
+            docker-compose exec -T app php artisan migrate --force
+            docker-compose exec -T app php artisan cache:clear
+          EOF
+
+      - name: Notify Deployment
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: 'Production deployment ${{ job.status }}'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+        if: always() && secrets.SLACK_WEBHOOK != ''

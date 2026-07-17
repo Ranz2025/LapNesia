@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
@@ -27,8 +29,8 @@ class PasswordResetController extends Controller
     public function resetPassword(Request $request): JsonResponse
     {
         $request->validate([
-            'token'    => 'required',
-            'email'    => 'required|email',
+            'token' => 'required',
+            'email' => 'required|email',
             'password' => ['required', 'confirmed', Rules\Password::min(8)->mixedCase()->numbers()],
         ]);
 

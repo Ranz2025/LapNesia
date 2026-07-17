@@ -1,24 +1,29 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Resources;
 
 use Illuminate\Http\Resources\Json\JsonResource;
 
+/**
+ * @mixin \App\Models\WalletTransaction
+ */
 class WalletTransactionResource extends JsonResource
 {
     public function toArray($request): array
     {
         return [
-            'id'             => $this->id,
-            'type'           => $this->type,
-            'status'         => $this->status,
-            'amount'         => (float) $this->amount,
+            'id' => $this->id,
+            'type' => $this->type,
+            'status' => $this->status,
+            'amount' => (float) $this->amount,
             'balance_before' => (float) $this->balance_before,
-            'balance_after'  => (float) $this->balance_after,
-            'description'    => $this->description,
+            'balance_after' => (float) $this->balance_after,
+            'description' => $this->description,
             'reference_type' => $this->reference_type,
-            'reference_id'   => $this->reference_id,
-            'created_at'     => $this->created_at,
+            'reference_id' => $this->reference_id,
+            'created_at' => $this->created_at,
         ];
     }
 }

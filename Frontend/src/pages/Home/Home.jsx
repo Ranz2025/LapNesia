@@ -141,7 +141,10 @@ export default function Home() {
 
   useEffect(() => {
     getAllProducts({})
-      .then((r) => setProducts((r.data || []).slice(0, 8)))
+      .then((r) => {
+        const arr = Array.isArray(r.data) ? r.data : (r.data?.data || []);
+        setProducts(arr.slice(0, 8));
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);

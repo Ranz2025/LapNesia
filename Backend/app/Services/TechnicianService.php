@@ -1,12 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Models\InspectionJob;
 use App\Models\TechnicianAvailability;
-use App\Models\TechnicianProfile;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Collection;
 
 class TechnicianService
 {
@@ -27,7 +29,7 @@ class TechnicianService
             ->paginate(12);
     }
 
-    public function findWithUser(string $id): ?User
+    public function findWithUser(int $id): ?User
     {
         return User::with('technicianProfile')
             ->where('id', $id)
@@ -36,7 +38,7 @@ class TechnicianService
             ->first();
     }
 
-    public function getAvailability(string $userId): \Illuminate\Database\Eloquent\Collection
+    public function getAvailability(int $userId): Collection
     {
         return TechnicianAvailability::where('user_id', $userId)
             ->where('is_booked', false)
@@ -45,7 +47,7 @@ class TechnicianService
             ->get();
     }
 
-    public function storeAvailability(string $userId, array $data): TechnicianAvailability
+    public function storeAvailability(int $userId, array $data): TechnicianAvailability
     {
         return TechnicianAvailability::create(array_merge($data, ['user_id' => $userId]));
     }
@@ -53,6 +55,7 @@ class TechnicianService
     public function updateAvailability(TechnicianAvailability $slot, array $data): TechnicianAvailability
     {
         $slot->update($data);
+
         return $slot->fresh();
     }
 

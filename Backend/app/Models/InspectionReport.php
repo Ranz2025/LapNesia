@@ -1,12 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
 class InspectionReport extends Model
 {
-
     protected $fillable = [
         'job_id',
         'technician_id',
@@ -42,20 +43,20 @@ class InspectionReport extends Model
         'overall_score' => 'integer',
     ];
 
-    public function job()
+    public function job(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(InspectionJob::class, 'job_id');
     }
 
-    public function technician()
+    public function technician(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(User::class, 'technician_id');
     }
 
-    public function photos()
+    public function photos(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(InspectionReportPhoto::class, 'inspection_report_id')
-                    ->orderBy('sort_order')
-                    ->orderBy('id');
+            ->orderBy('sort_order')
+            ->orderBy('id');
     }
 }

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Notifications;
 
 use App\Models\InspectionJob;
@@ -22,7 +24,7 @@ class InspectionJobRejectedNotification extends Notification
         return [
             'type' => 'inspection_job_rejected',
             'title' => 'Teknisi Menolak Inspeksi',
-            'message' => 'Teknisi menolak permintaan inspeksi untuk produk ' . ($this->job->product?->model ?? 'laptop') . '.',
+            'message' => 'Teknisi menolak permintaan inspeksi untuk produk '.($this->job->product?->model ?? 'laptop').'.',
             'job_id' => $this->job->id,
             'product' => $this->job->product?->model,
             'schedule' => $this->job->schedule_date,

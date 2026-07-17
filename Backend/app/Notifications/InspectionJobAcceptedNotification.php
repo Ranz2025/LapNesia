@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Notifications;
 
 use App\Models\InspectionJob;
@@ -22,12 +24,12 @@ class InspectionJobAcceptedNotification extends Notification
         return [
             'type' => 'inspection_job_accepted',
             'title' => 'Teknisi Menerima Inspeksi',
-            'message' => 'Teknisi menerima permintaan inspeksi untuk produk ' . ($this->job->product?->model ?? 'laptop') . '. Silakan lakukan pembayaran.',
+            'message' => 'Teknisi menerima permintaan inspeksi untuk produk '.($this->job->product?->model ?? 'laptop').'. Silakan lakukan pembayaran.',
             'job_id' => $this->job->id,
             'product' => $this->job->product?->model,
             'schedule' => $this->job->schedule_date,
             'technician' => $this->job->technician?->name,
-            'action_url' => '/inspection-orders/' . $this->job->id,
+            'action_url' => '/inspection-orders/'.$this->job->id,
         ];
     }
 }

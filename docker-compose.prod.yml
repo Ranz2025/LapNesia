@@ -1,0 +1,136 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+      target: prod
+    container_name: lapnesia-backend-prod
+    restart: unless-stopped
+    env_file:
+      - ./Backend/.env.production
+    environment:
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - DB_HOST=mysql
+      - REDIS_HOST=redis
+    networks:
+      - lapnesia-network
+    volumes:
+      - ./docker/nginx/ssl:/etc/nginx/ssl
+    depends_on:
+      - mysql
+      - redis
+
+  nginx:
+    build:
+      context: .
+      dockerfile: docker/nginx/Dockerfile
+    image: lapnesia-nginx-prod
+    ports:
+      - "80:80"
+    container_name: lapnesia-nginx-prod
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost/api/v1/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - lapnesia-network
+    volumes:
+      - ./docker/nginx/ssl:/etc/nginx/ssl
+    depends_on:
+      - backend
+
+  mysql:
+    image: mysql:8.0
+    container_name: lapnesia-mysql-prod
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+    env_file:
+      - ./Backend/.env.production
+    environment:
+      - MYSQL_DATABASE=lapnesia
+      - MYSQL_USER=lapnesia_user
+      - MYSQL_PASSWORD=lapnesiapassword
+      - MYSQL_ROOT_PASSWORD=lapnesiarootpassword
+    volumes:
+      - mysql-prod-data:/var/lib/mysql
+    networks:
+      - lapnesia-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: lapnesia-redis-prod
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+    volumes:
+      - redis-prod-data:/data
+    networks:
+      - lapnesia-network
+
+  queue:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+      target: prod
+    container_name: lapnesia-queue-prod
+    restart: unless-stopped
+    command: php artisan queue:work redis --sleep=3 --tries=3 --timeout=90
+    env_file:
+      - ./Backend/.env.production
+    environment:
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - DB_HOST=mysql
+      - REDIS_HOST=redis
+    networks:
+      - lapnesia-network
+    volumes:
+      - ./docker/nginx/ssl:/etc/nginx/ssl
+    depends_on:
+      - backend
+      - redis
+      - mysql
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+      target: prod
+    container_name: lapnesia-scheduler-prod
+    restart: unless-stopped
+    command: php artisan schedule:work
+    env_file:
+      - ./Backend/.env.production
+    environment:
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - DB_HOST=mysql
+      - REDIS_HOST=redis
+    networks:
+      - lapnesia-network
+    volumes:
+      - ./docker/nginx/ssl:/etc/nginx/ssl
+    depends_on:
+      - backend
+      - redis
+      - mysql
+
+volumes:
+  mysql-prod-data:
+  redis-prod-data:
+
+networks:
+  lapnesia-network:
+    driver: bridge

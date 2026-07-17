@@ -1,0 +1,24 @@
+--- tests/Feature/E2EFlowTest.php
++++ tests/Feature/E2EFlowTest.php
+@@ -4,6 +4,7 @@
+ 
+ use Illuminate\Foundation\Testing\RefreshDatabase;
+ use Illuminate\Http\UploadedFile;
++use Midtrans\Snap;
+ use Illuminate\Support\Facades\Storage;
+ use Tests\TestCase;
+ 
+@@ -15,6 +16,13 @@
+     {
+         Storage::fake('public');
+ 
++        // Mock Midtrans for payments
++        \Mockery::mock('alias:Midtrans\Snap', function ($mock) {
++            $mock->shouldReceive('createTransaction')->andReturn((object)[
++                'token' => 'mock-snap-token-123',
++                'redirect_url' => 'https://mock.midtrans.com/pay'
++            ]);
++        });
++
+         // 1. REGISTRATION AND LOGIN
+         // Register Seller

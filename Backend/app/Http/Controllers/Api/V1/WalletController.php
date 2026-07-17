@@ -1,58 +1,57 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use App\Http\Resources\WalletResource;
-use App\Http\Resources\WalletTransactionResource;
 use App\Models\Wallet;
-use App\Services\WalletService;
+use App\Models\WalletTransaction;
 use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 
 class WalletController extends Controller
 {
     use ApiResponse;
 
-    public function __construct(protected WalletService $service) {}
-
     public function show(Request $request): JsonResponse
     {
-        $wallet = Wallet::where('user_id', $request->user()->id)->firstOrFail();
-        return $this->successResponse(new WalletResource($wallet));
+        $wallet = Wallet::firstOrCreate(
+            ['user_id' => $request->user()->id],
+            ['available_balance' => 0, 'held_balance' => 0, 'frozen_balance' => 0]
+        );
+
+        Gate::authorize('view', $wallet);
+
+        return $this->successResponse($wallet);
     }
 
     public function transactions(Request $request): JsonResponse
     {
-        $wallet = Wallet::where('user_id', $request->user()->id)->firstOrFail();
+        $wallet = Wallet::where('user_id', $request->user()->id)->first();
 
-        $txns = $wallet->transactions()->latest()->paginate(20);
+        if (! $wallet) {
+            return $this->successResponse(['data' => [], 'total' => 0]);
+        }
 
-        return $this->successResponse(
-            WalletTransactionResource::collection($txns)->response()->getData(true)
-        );
+        Gate::authorize('view', $wallet);
+
+        $transactions = WalletTransaction::where('wallet_id', $wallet->id)
+            ->latest()
+            ->paginate(20);
+
+        return $this->successResponse($transactions);
     }
 
     public function withdraw(Request $request): JsonResponse
     {
-        $request->validate([
-            'amount' => 'required|numeric|min:50000',
-        ]);
+        $wallet = Wallet::where('user_id', $request->user()->id)->firstOrFail();
 
-        try {
-            $wallet = Wallet::where('user_id', $request->user()->id)->lockForUpdate()->firstOrFail();
-            $withdrawalService = app(\App\Services\WithdrawalService::class);
-            $withdrawal = $withdrawalService->create($wallet, [
-                'amount'         => $request->amount,
-                'bank_name'      => $request->input('bank_name', 'Dummy Bank'),
-                'account_name'   => $request->input('account_name', $request->user()->name),
-                'account_number' => $request->input('account_number', '0000000000'),
-            ]);
+        Gate::authorize('withdraw', $wallet);
 
-            return $this->successResponse($withdrawal, 'Withdrawal berhasil dibuat.');
-        } catch (\Exception $e) {
-            return $this->errorResponse($e->getMessage(), 422);
-        }
+        // Redirect to WithdrawalController@store logic
+        return app(WithdrawalController::class)->store($request);
     }
 }

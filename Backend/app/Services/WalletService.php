@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Models\Wallet;
@@ -14,7 +16,7 @@ class WalletService
     public function freezeForWithdrawal(Wallet $wallet, float $amount, string $type, Model $reference, string $description = '', string $status = 'completed'): WalletTransaction
     {
         $wallet = Wallet::where('id', $wallet->id)->lockForUpdate()->first();
-        
+
         if ((float) $wallet->available_balance < $amount) {
             throw new \Exception('Saldo tidak mencukupi.');
         }
@@ -32,7 +34,7 @@ class WalletService
     public function releaseFreeze(Wallet $wallet, float $amount, string $type, Model $reference, string $description = '', string $status = 'completed'): WalletTransaction
     {
         $wallet = Wallet::where('id', $wallet->id)->lockForUpdate()->first();
-        
+
         if ((float) $wallet->frozen_balance < $amount) {
             throw new \Exception('Frozen balance tidak mencukupi.');
         }
@@ -62,7 +64,7 @@ class WalletService
     public function debit(Wallet $wallet, float $amount, string $type, Model $reference, string $description = '', string $status = 'completed'): WalletTransaction
     {
         $wallet = Wallet::where('id', $wallet->id)->lockForUpdate()->first();
-        
+
         if ((float) $wallet->available_balance < $amount) {
             throw new \Exception('Saldo tidak mencukupi.');
         }
@@ -91,7 +93,7 @@ class WalletService
     public function release(Wallet $wallet, float $amount, string $type, Model $reference, string $description = '', string $status = 'released'): WalletTransaction
     {
         $wallet = Wallet::where('id', $wallet->id)->lockForUpdate()->first();
-        
+
         if ((float) $wallet->held_balance < $amount) {
             throw new \Exception('Held balance tidak mencukupi.');
         }
@@ -109,7 +111,7 @@ class WalletService
     public function refund(Wallet $wallet, float $amount, string $type, Model $reference, string $description = '', string $status = 'refunded'): WalletTransaction
     {
         $wallet = Wallet::where('id', $wallet->id)->lockForUpdate()->first();
-        
+
         if ((float) $wallet->held_balance < $amount) {
             throw new \Exception('Held balance tidak mencukupi untuk refund.');
         }
@@ -123,15 +125,15 @@ class WalletService
     private function record(Wallet $wallet, string $type, float $amount, float $before, float $after, Model $reference, string $description, string $status): WalletTransaction
     {
         return WalletTransaction::create([
-            'wallet_id'      => $wallet->id,
-            'reference_id'   => $reference->id,
+            'wallet_id' => $wallet->id,
+            'reference_id' => $reference->id,
             'reference_type' => get_class($reference),
-            'type'           => $type,
-            'status'         => $status,
-            'amount'         => $amount,
+            'type' => $type,
+            'status' => $status,
+            'amount' => $amount,
             'balance_before' => $before,
-            'balance_after'  => $after,
-            'description'    => $description,
+            'balance_after' => $after,
+            'description' => $description,
         ]);
     }
 }

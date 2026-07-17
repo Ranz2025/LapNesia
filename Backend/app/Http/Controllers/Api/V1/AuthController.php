@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
@@ -30,7 +32,7 @@ class AuthController extends Controller
         return $this->successResponse([
             'user' => new UserResource($user),
             'access_token' => $token,
-            'token_type' => 'Bearer'
+            'token_type' => 'Bearer',
         ], 'Registrasi berhasil', 201);
     }
 
@@ -45,7 +47,7 @@ class AuthController extends Controller
         return $this->successResponse([
             'user' => new UserResource($user),
             'access_token' => $token,
-            'token_type' => 'Bearer'
+            'token_type' => 'Bearer',
         ], 'Login berhasil');
     }
 
@@ -54,7 +56,9 @@ class AuthController extends Controller
      */
     public function logout(Request $request): JsonResponse
     {
-        $request->user()->currentAccessToken()->delete();
+        if ($request->user() && $request->user()->currentAccessToken()) {
+            $request->user()->currentAccessToken()->delete();
+        }
 
         return $this->successResponse(null, 'Logout berhasil');
     }

@@ -1,12 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
 class ProductReturn extends Model
 {
-
     protected $table = 'returns';
 
     protected $fillable = [
@@ -24,22 +25,22 @@ class ProductReturn extends Model
     ];
 
     protected $casts = [
-        'approved_at'  => 'datetime',
-        'rejected_at'  => 'datetime',
+        'approved_at' => 'datetime',
+        'rejected_at' => 'datetime',
         'completed_at' => 'datetime',
     ];
 
-    public function order()
+    public function order(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(Order::class);
     }
 
-    public function buyer()
+    public function buyer(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(User::class, 'buyer_id');
     }
 
-    public function seller()
+    public function seller(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(User::class, 'seller_id');
     }

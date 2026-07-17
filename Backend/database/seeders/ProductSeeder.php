@@ -1,13 +1,15 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-use App\Models\Product;
-use App\Models\ProductImage;
 use App\Models\Brand;
 use App\Models\Category;
+use App\Models\Product;
+use App\Models\ProductImage;
 use App\Models\User;
+use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 
 class ProductSeeder extends Seeder
@@ -44,38 +46,40 @@ class ProductSeeder extends Seeder
         foreach ($products as $i => $data) {
             $brandId = $brands[$data['brand']] ?? null;
             $categoryId = $categories[$data['category']] ?? null;
-            if (!$brandId || !$categoryId) continue;
+            if (! $brandId || ! $categoryId) {
+                continue;
+            }
 
-            $slug = Str::slug($data['brand'] . ' ' . $data['model']);
+            $slug = Str::slug($data['brand'].' '.$data['model']);
             $originalSlug = $slug;
             $counter = 2;
             while (Product::where('slug', $slug)->exists()) {
-                $slug = $originalSlug . '-' . $counter++;
+                $slug = $originalSlug.'-'.$counter++;
             }
 
             $product = Product::create([
-                'seller_id'      => $seller->id,
-                'brand_id'       => $brandId,
-                'category_id'    => $categoryId,
-                'model'          => $data['model'],
-                'slug'           => $slug,
-                'cpu'            => $data['cpu'],
-                'ram'            => $data['ram'],
-                'storage'        => $data['storage'],
-                'storage_type'   => $data['storage_type'],
-                'gpu'            => $data['gpu'],
-                'screen_size'    => $data['screen_size'],
-                'price'          => $data['price'],
-                'condition'      => $data['condition'],
-                'location'       => 'Jakarta',
-                'description'    => 'Laptop ' . $data['brand'] . ' ' . $data['model'] . ' kondisi ' . str_replace('_', ' ', $data['condition']) . '.',
-                'status'         => 'active',
+                'seller_id' => $seller->id,
+                'brand_id' => $brandId,
+                'category_id' => $categoryId,
+                'model' => $data['model'],
+                'slug' => $slug,
+                'cpu' => $data['cpu'],
+                'ram' => $data['ram'],
+                'storage' => $data['storage'],
+                'storage_type' => $data['storage_type'],
+                'gpu' => $data['gpu'],
+                'screen_size' => $data['screen_size'],
+                'price' => $data['price'],
+                'condition' => $data['condition'],
+                'location' => 'Jakarta',
+                'description' => 'Laptop '.$data['brand'].' '.$data['model'].' kondisi '.str_replace('_', ' ', $data['condition']).'.',
+                'status' => 'active',
             ]);
 
             // Add product image
             ProductImage::create([
                 'product_id' => $product->id,
-                'image_url' => 'https://picsum.photos/400/300?random=' . ($i + 1),
+                'image_url' => 'https://picsum.photos/400/300?random='.($i + 1),
                 'is_primary' => true,
                 'sort_order' => 0,
             ]);

@@ -1,22 +1,31 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Requests;
 
+use App\Models\Product;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Gate;
 
 class UpdateProductRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        $product = Product::find($this->route('id'));
+        if (! $product) {
+            return false;
+        }
+
+        return Gate::allows('update', $product);
     }
 
     public function rules(): array
     {
         return [
-            'brand_id' => ['sometimes', 'required', 'uuid', 'exists:brands,id'],
-            'category_id' => ['sometimes', 'required', 'uuid', 'exists:categories,id'],
-            'model' => ['sometimes', 'required', 'string', 'max:255'],
+            'brand_id' => ['sometimes', 'exists:brands,id'],
+            'category_id' => ['sometimes', 'exists:categories,id'],
+            'model' => ['sometimes', 'string', 'max:255'],
             'cpu' => ['sometimes', 'required', 'string', 'max:255'],
             'ram' => ['sometimes', 'required', 'integer', 'min:1'],
             'storage' => ['sometimes', 'required', 'integer', 'min:1'],

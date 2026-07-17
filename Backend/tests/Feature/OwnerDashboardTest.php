@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Feature;
 
 use App\Models\User;
@@ -13,12 +15,12 @@ class OwnerDashboardTest extends TestCase
     public function test_owner_can_access_dashboard_stats(): void
     {
         $owner = User::create([
-            'name'     => 'Platform Owner',
-            'email'    => 'owner@lapnesia.com',
-            'phone'    => '081234567890',
+            'name' => 'Platform Owner',
+            'email' => 'owner@lapnesia.com',
+            'phone' => '081234567890',
             'password' => bcrypt('password'),
-            'role'     => 'owner',
-            'status'   => 'active',
+            'role' => 'owner',
+            'status' => 'active',
         ]);
 
         $response = $this->actingAs($owner)
@@ -45,8 +47,7 @@ class OwnerDashboardTest extends TestCase
                         'pending_withdrawals',
                     ],
                     'charts' => [
-                        'daily_income',
-                        'cumulative_revenue',
+                        'revenue',
                         'user_growth',
                     ],
                     'period',

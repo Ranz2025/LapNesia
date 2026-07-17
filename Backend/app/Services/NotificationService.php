@@ -1,9 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Models\User;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Pagination\LengthAwarePaginator;
 
@@ -30,6 +31,7 @@ class NotificationService
             ->findOrFail($notificationId);
 
         $notification->update(['read_at' => now()]);
+
         return $notification->fresh();
     }
 

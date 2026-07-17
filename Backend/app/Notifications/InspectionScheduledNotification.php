@@ -1,10 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Notifications;
 
+use App\Models\InspectionJob;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
-use App\Models\InspectionJob;
 
 class InspectionScheduledNotification extends Notification
 {
@@ -23,11 +25,11 @@ class InspectionScheduledNotification extends Notification
         $time = $this->job->technician_schedule_time ?? '-';
 
         return [
-            'type'       => 'inspection_scheduled',
-            'title'      => 'Jadwal Inspeksi Ditentukan',
-            'message'    => "Teknisi telah menjadwalkan inspeksi pada {$date} pukul {$time}.",
-            'job_id'     => $this->job->id,
-            'action_url' => '/inspection-orders/' . $this->job->id,
+            'type' => 'inspection_scheduled',
+            'title' => 'Jadwal Inspeksi Ditentukan',
+            'message' => "Teknisi telah menjadwalkan inspeksi pada {$date} pukul {$time}.",
+            'job_id' => $this->job->id,
+            'action_url' => '/inspection-orders/'.$this->job->id,
         ];
     }
 }

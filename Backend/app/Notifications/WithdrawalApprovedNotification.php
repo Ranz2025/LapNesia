@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Notifications;
 
 use App\Models\Withdrawal;
@@ -20,11 +22,11 @@ class WithdrawalApprovedNotification extends Notification
     public function toDatabase(object $notifiable): array
     {
         return [
-            'type'            => 'withdrawal_approved',
-            'title'           => 'Penarikan Disetujui',
-            'message'         => 'Penarikan Anda telah disetujui.',
-            'withdrawal_id'   => $this->withdrawal->id,
-            'amount'          => $this->withdrawal->amount,
+            'type' => 'withdrawal_approved',
+            'title' => 'Penarikan Disetujui',
+            'message' => 'Penarikan Anda telah disetujui.',
+            'withdrawal_id' => $this->withdrawal->id,
+            'amount' => $this->withdrawal->amount,
         ];
     }
 }

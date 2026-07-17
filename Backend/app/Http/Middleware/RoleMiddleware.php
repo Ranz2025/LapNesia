@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Middleware;
 
 use Closure;
@@ -13,10 +15,17 @@ class RoleMiddleware
      */
     public function handle(Request $request, Closure $next, ...$roles): Response
     {
-        if (!$request->user() || !in_array($request->user()->role, $roles)) {
+        $user = $request->user();
+        if (! $user) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
+        }
+
+        $userRole = is_object($user->role) ? $user->role->value : $user->role;
+
+        if (! in_array($userRole, $roles)) {
             return response()->json([
                 'success' => false,
-                'message' => 'Anda tidak memiliki akses ke fitur ini.'
+                'message' => 'Anda tidak memiliki akses ke fitur ini.',
             ], 403);
         }
 

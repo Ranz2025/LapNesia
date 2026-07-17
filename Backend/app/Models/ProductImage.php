@@ -1,12 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
 class ProductImage extends Model
 {
-
     protected $fillable = [
         'product_id',
         'image_url',
@@ -28,10 +29,10 @@ class ProductImage extends Model
             return $value;
         }
 
-        return url('storage/' . $value);
+        return url('storage/'.$value);
     }
 
-    public function product()
+    public function product(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(Product::class);
     }

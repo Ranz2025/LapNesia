@@ -1,39 +1,28 @@
 <?php
 
-use Illuminate\Support\Str;
+declare(strict_types=1);
 
 return [
-
     /*
     |--------------------------------------------------------------------------
     | Default Cache Store
     |--------------------------------------------------------------------------
     |
-    | This option controls the default cache store that will be used by the
-    | framework. This connection is utilized if another isn't explicitly
-    | specified when running a cache operation inside the application.
+    | This option controls the default cache connection that gets used while
+    | using this caching library. This connection is used when another is
+    | not explicitly specified when executing a given caching function.
     |
     */
 
-    'default' => env('CACHE_STORE', 'database'),
+    'default' => env('CACHE_DRIVER', 'redis'),
 
     /*
     |--------------------------------------------------------------------------
     | Cache Stores
     |--------------------------------------------------------------------------
-    |
-    | Here you may define all of the cache "stores" for your application as
-    | well as their drivers. You may even define multiple stores for the
-    | same cache driver to group types of items stored in your caches.
-    |
-    | Supported drivers: "array", "database", "file", "memcached",
-    |                    "redis", "dynamodb", "storage", "octane",
-    |                    "session", "failover", "null"
-    |
     */
 
     'stores' => [
-
         'array' => [
             'driver' => 'array',
             'serialize' => false,
@@ -41,22 +30,13 @@ return [
 
         'database' => [
             'driver' => 'database',
-            'connection' => env('DB_CACHE_CONNECTION'),
-            'table' => env('DB_CACHE_TABLE', 'cache'),
-            'lock_connection' => env('DB_CACHE_LOCK_CONNECTION'),
-            'lock_table' => env('DB_CACHE_LOCK_TABLE'),
+            'connection' => null,
+            'table' => 'cache',
         ],
 
         'file' => [
             'driver' => 'file',
             'path' => storage_path('framework/cache/data'),
-            'lock_path' => storage_path('framework/cache/data'),
-        ],
-
-        'storage' => [
-            'driver' => 'storage',
-            'disk' => env('CACHE_STORAGE_DISK'),
-            'path' => env('CACHE_STORAGE_PATH', 'framework/cache/data'),
         ],
 
         'memcached' => [
@@ -80,8 +60,8 @@ return [
 
         'redis' => [
             'driver' => 'redis',
-            'connection' => env('REDIS_CACHE_CONNECTION', 'cache'),
-            'lock_connection' => env('REDIS_CACHE_LOCK_CONNECTION', 'default'),
+            'connection' => 'cache',
+            'lock_connection' => 'default',
         ],
 
         'dynamodb' => [
@@ -96,15 +76,6 @@ return [
         'octane' => [
             'driver' => 'octane',
         ],
-
-        'failover' => [
-            'driver' => 'failover',
-            'stores' => [
-                'database',
-                'array',
-            ],
-        ],
-
     ],
 
     /*
@@ -112,25 +83,31 @@ return [
     | Cache Key Prefix
     |--------------------------------------------------------------------------
     |
-    | When utilizing the APC, database, memcached, Redis, and DynamoDB cache
-    | stores, there might be other applications using the same cache. For
-    | that reason, you may prefix every cache key to avoid collisions.
+    | When utilizing a RAM based store for cache, there might be other
+    | applications utilizing the same cache. So, we'll specify a value
+    | to get prepended to all our keys so we can avoid collisions.
     |
     */
 
-    'prefix' => env('CACHE_PREFIX', Str::slug((string) env('APP_NAME', 'laravel')).'-cache-'),
+    'prefix' => env('CACHE_PREFIX', 'lapnesia_cache_'),
 
     /*
     |--------------------------------------------------------------------------
-    | Serializable Classes
+    | Cache TTL (Time To Live)
     |--------------------------------------------------------------------------
     |
-    | This value determines the classes that can be unserialized from cache
-    | storage. By default, no PHP classes will be unserialized from your
-    | cache to prevent gadget chain attacks if your APP_KEY is leaked.
+    | Default time to live for cached items (in seconds).
     |
     */
 
-    'serializable_classes' => false,
-
+    'ttl' => [
+        'products' => 3600,           // 1 hour
+        'categories' => 3600,         // 1 hour
+        'brands' => 3600,             // 1 hour
+        'user_profile' => 1800,       // 30 minutes
+        'wallet_balance' => 300,      // 5 minutes
+        'order_summary' => 600,       // 10 minutes
+        'search_results' => 1800,     // 30 minutes
+        'system_config' => 86400,     // 24 hours
+    ],
 ];

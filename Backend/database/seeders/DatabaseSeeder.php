@@ -1,11 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
+use App\Models\TechnicianProfile;
 use App\Models\User;
 use App\Models\Wallet;
-use App\Models\TechnicianProfile;
+use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
@@ -77,9 +79,9 @@ class DatabaseSeeder extends Seeder
             // Teknisi mendapat TechnicianProfile dengan biaya default
             if ($user->role === 'technician') {
                 TechnicianProfile::create([
-                    'user_id'        => $user->id,
-                    'bio'            => 'Teknisi berpengalaman siap membantu inspeksi laptop Anda.',
-                    'skills'         => 'Diagnosa hardware, cek baterai, layar, keyboard, storage',
+                    'user_id' => $user->id,
+                    'bio' => 'Teknisi berpengalaman siap membantu inspeksi laptop Anda.',
+                    'skills' => 'Diagnosa hardware, cek baterai, layar, keyboard, storage',
                     'inspection_fee' => 150000,
                 ]);
             }

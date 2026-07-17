@@ -1,13 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use App\Models\InspectionRating;
 
 class InspectionJob extends Model
 {
-
     protected $fillable = [
         'product_id',
         'technician_id',
@@ -24,43 +24,43 @@ class InspectionJob extends Model
     ];
 
     protected $casts = [
-        'schedule_date'            => 'datetime',
-        'fee'                      => 'decimal:2',
-        'scheduled_by_technician'  => 'boolean',
+        'schedule_date' => 'datetime',
+        'fee' => 'decimal:2',
+        'scheduled_by_technician' => 'boolean',
         'technician_schedule_date' => 'date',
     ];
 
-    public function product()
+    public function product(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(Product::class);
     }
 
-    public function technician()
+    public function technician(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(User::class, 'technician_id');
     }
 
-    public function requester()
+    public function requester(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(User::class, 'requested_by');
     }
 
-    public function report()
+    public function report(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
         return $this->hasOne(InspectionReport::class, 'job_id');
     }
 
-    public function payment()
+    public function payment(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
         return $this->hasOne(InspectionPayment::class, 'inspection_job_id');
     }
 
-    public function rating()
+    public function rating(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
         return $this->hasOne(InspectionRating::class, 'job_id');
     }
 
-    public function walletTransactions()
+    public function walletTransactions(): \Illuminate\Database\Eloquent\Relations\MorphMany
     {
         return $this->morphMany(WalletTransaction::class, 'reference');
     }

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
@@ -24,28 +26,45 @@ class TechnicianController extends Controller
 
     public function show(string $id): JsonResponse
     {
-        $profile = $this->service->findWithUser($id);
-        if (!$profile) return $this->errorResponse('Teknisi tidak ditemukan.', 404);
+        $profile = $this->service->findWithUser((int) $id);
+        if (! $profile) {
+            return $this->errorResponse('Teknisi tidak ditemukan.', 404);
+        }
+
         return $this->successResponse(new TechnicianResource($profile));
     }
 
     public function availability(string $id): JsonResponse
     {
-        $profile = $this->service->findWithUser($id);
-        if (!$profile) return $this->errorResponse('Teknisi tidak ditemukan.', 404);
+        $profile = $this->service->findWithUser((int) $id);
+        if (! $profile) {
+            return $this->errorResponse('Teknisi tidak ditemukan.', 404);
+        }
+
         return $this->successResponse($this->service->getAvailability($profile->id));
     }
 
     public function storeAvailability(StoreAvailabilityRequest $request): JsonResponse
     {
-        $slot = $this->service->storeAvailability($request->user()->id, $request->validated());
+        $user = $request->user();
+        if ($user->role !== 'technician' && (! is_object($user->role) || $user->role->value !== 'technician')) {
+            return $this->errorResponse('Hanya teknisi yang dapat membuat slot ketersediaan.', 403);
+        }
+
+        $slot = $this->service->storeAvailability($user->id, $request->validated());
+
         return $this->successResponse($slot, 'Slot tersedia berhasil ditambahkan.', 201);
     }
 
     public function updateAvailability(StoreAvailabilityRequest $request, string $id): JsonResponse
     {
+        $user = $request->user();
+        if ($user->role !== 'technician' && (! is_object($user->role) || $user->role->value !== 'technician')) {
+            return $this->errorResponse('Hanya teknisi yang dapat mengubah slot ketersediaan.', 403);
+        }
+
         $slot = TechnicianAvailability::where('id', $id)
-            ->where('user_id', $request->user()->id)
+            ->where('user_id', $user->id)
             ->firstOrFail();
 
         if ($slot->is_booked) {
@@ -60,8 +79,13 @@ class TechnicianController extends Controller
 
     public function destroyAvailability(Request $request, string $id): JsonResponse
     {
+        $user = $request->user();
+        if ($user->role !== 'technician' && (! is_object($user->role) || $user->role->value !== 'technician')) {
+            return $this->errorResponse('Hanya teknisi yang dapat menghapus slot ketersediaan.', 403);
+        }
+
         $slot = TechnicianAvailability::where('id', $id)
-            ->where('user_id', $request->user()->id)
+            ->where('user_id', $user->id)
             ->firstOrFail();
 
         if ($slot->is_booked) {
@@ -69,6 +93,7 @@ class TechnicianController extends Controller
         }
 
         $this->service->deleteAvailability($slot);
+
         return $this->successResponse(null, 'Slot berhasil dihapus.');
     }
 }

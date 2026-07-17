@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Console\Commands;
 
 use App\Models\Order;
@@ -8,7 +10,8 @@ use Illuminate\Support\Facades\DB;
 
 class ExpireOrders extends Command
 {
-    protected $signature   = 'orders:expire';
+    protected $signature = 'orders:expire';
+
     protected $description = 'Expire unpaid orders past booking_expires_at (BR-07)';
 
     public function handle(): int
@@ -25,6 +28,7 @@ class ExpireOrders extends Command
         }
 
         $this->info("Expired {$orders->count()} orders.");
+
         return 0;
     }
 }

@@ -1,21 +1,23 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Providers;
 
 use App\Events\InspectionCompletedEvent;
 use App\Events\InspectionReportPublishedEvent;
 use App\Events\OrderCreatedEvent;
 use App\Events\PaymentSuccessEvent;
+use App\Events\UserCreated;
 use App\Events\WithdrawalApprovedEvent;
 use App\Events\WithdrawalRejectedEvent;
-use App\Events\UserCreated;
 use App\Listeners\InspectionCompletedListener;
 use App\Listeners\InspectionReportPublishedListener;
 use App\Listeners\OrderCreatedListener;
 use App\Listeners\PaymentSuccessListener;
+use App\Listeners\UserCreatedListener;
 use App\Listeners\WithdrawalApprovedListener;
 use App\Listeners\WithdrawalRejectedListener;
-use App\Listeners\UserCreatedListener;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
 
 class EventServiceProvider extends ServiceProvider
@@ -30,4 +32,3 @@ class EventServiceProvider extends ServiceProvider
         UserCreated::class => [UserCreatedListener::class],
     ];
 }
-

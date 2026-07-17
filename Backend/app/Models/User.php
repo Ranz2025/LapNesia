@@ -1,20 +1,26 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
-use App\Events\UserGrowthUpdated;
+use App\Events\UserCreated;
+use App\Notifications\ResetPasswordNotification;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
-use Carbon\Carbon;
 
+/**
+ * @property \App\Models\TechnicianProfile $technicianProfile
+ */
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable, HasApiTokens;
+    use HasApiTokens, HasFactory, Notifiable;
 
     protected $dispatchesEvents = [
-        'created' => \App\Events\UserCreated::class,
+        'created' => UserCreated::class,
     ];
 
     protected $fillable = [
@@ -41,56 +47,56 @@ class User extends Authenticatable
         'last_login_at' => 'datetime',
     ];
 
-    public function wallet()
+    public function wallet(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
         return $this->hasOne(Wallet::class);
     }
 
-    public function products()
+    public function products(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(Product::class, 'seller_id');
     }
 
-    public function ordersAsBuyer()
+    public function ordersAsBuyer(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(Order::class, 'buyer_id');
     }
 
-    public function ordersAsSeller()
+    public function ordersAsSeller(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(Order::class, 'seller_id');
     }
 
-    public function technicianProfile()
+    public function technicianProfile(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
         return $this->hasOne(TechnicianProfile::class);
     }
 
-    public function technicianAvailabilities()
+    public function technicianAvailabilities(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(TechnicianAvailability::class);
     }
 
-    public function wishlists()
+    public function wishlists(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(Wishlist::class);
     }
 
-    public function auditLogs()
+    public function auditLogs(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(AuditLog::class);
     }
 
-    public function carts()
+    public function carts(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(Cart::class);
     }
 
     public function sendPasswordResetNotification($token)
     {
-        $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
-        $url = $frontendUrl . '/reset-password?token=' . $token . '&email=' . urlencode($this->email);
+        $frontendUrl = config('app.frontend_url', 'http://localhost:5173');
+        $url = $frontendUrl.'/reset-password?token='.$token.'&email='.urlencode($this->email);
 
-        $this->notify(new \App\Notifications\ResetPasswordNotification($url));
+        $this->notify(new ResetPasswordNotification($url));
     }
 }

@@ -1,18 +1,17 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Feature;
 
-use App\Events\OrderCreatedEvent;
-use App\Events\PaymentSuccessEvent;
 use App\Events\WithdrawalApprovedEvent;
 use App\Events\WithdrawalRejectedEvent;
-use App\Models\Order;
-use App\Models\Payment;
 use App\Models\User;
 use App\Models\Wallet;
 use App\Models\Withdrawal;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Notifications\DatabaseNotification;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class NotificationTest extends TestCase
@@ -22,14 +21,15 @@ class NotificationTest extends TestCase
     private function createUser(string $role): User
     {
         $user = User::create([
-            'name'     => ucfirst($role),
-            'email'    => $role . '@notif-test.com',
-            'phone'    => '08' . rand(100000000, 999999999),
+            'name' => ucfirst($role),
+            'email' => $role.'@notif-test.com',
+            'phone' => '08'.rand(100000000, 999999999),
             'password' => bcrypt('password'),
-            'role'     => $role,
-            'status'   => 'active',
+            'role' => $role,
+            'status' => 'active',
         ]);
         Wallet::create(['user_id' => $user->id, 'available_balance' => 0, 'held_balance' => 0]);
+
         return $user;
     }
 
@@ -40,12 +40,12 @@ class NotificationTest extends TestCase
         $user = $this->createUser('buyer');
 
         DatabaseNotification::create([
-            'id'                => \Illuminate\Support\Str::uuid(),
-            'type'              => 'order_created',
-            'notifiable_type'   => User::class,
-            'notifiable_id'     => $user->id,
-            'data'              => json_encode(['message' => 'Test']),
-            'read_at'           => null,
+            'id' => Str::uuid(),
+            'type' => 'order_created',
+            'notifiable_type' => User::class,
+            'notifiable_id' => $user->id,
+            'data' => json_encode(['message' => 'Test']),
+            'read_at' => null,
         ]);
 
         $response = $this->actingAs($user)->getJson('/api/v1/notifications');
@@ -60,21 +60,21 @@ class NotificationTest extends TestCase
         $user = $this->createUser('buyer');
 
         DatabaseNotification::create([
-            'id'                => \Illuminate\Support\Str::uuid(),
-            'type'              => 'order_created',
-            'notifiable_type'   => User::class,
-            'notifiable_id'     => $user->id,
-            'data'              => json_encode(['message' => 'Test']),
-            'read_at'           => null,
+            'id' => Str::uuid(),
+            'type' => 'order_created',
+            'notifiable_type' => User::class,
+            'notifiable_id' => $user->id,
+            'data' => json_encode(['message' => 'Test']),
+            'read_at' => null,
         ]);
 
         DatabaseNotification::create([
-            'id'                => \Illuminate\Support\Str::uuid(),
-            'type'              => 'order_created',
-            'notifiable_type'   => User::class,
-            'notifiable_id'     => $user->id,
-            'data'              => json_encode(['message' => 'Test']),
-            'read_at'           => now(),
+            'id' => Str::uuid(),
+            'type' => 'order_created',
+            'notifiable_type' => User::class,
+            'notifiable_id' => $user->id,
+            'data' => json_encode(['message' => 'Test']),
+            'read_at' => now(),
         ]);
 
         $response = $this->actingAs($user)->getJson('/api/v1/notifications/unread');
@@ -88,21 +88,21 @@ class NotificationTest extends TestCase
         $user = $this->createUser('buyer');
 
         DatabaseNotification::create([
-            'id'                => \Illuminate\Support\Str::uuid(),
-            'type'              => 'order_created',
-            'notifiable_type'   => User::class,
-            'notifiable_id'     => $user->id,
-            'data'              => json_encode(['message' => 'Test']),
-            'read_at'           => null,
+            'id' => Str::uuid(),
+            'type' => 'order_created',
+            'notifiable_type' => User::class,
+            'notifiable_id' => $user->id,
+            'data' => json_encode(['message' => 'Test']),
+            'read_at' => null,
         ]);
 
         DatabaseNotification::create([
-            'id'                => \Illuminate\Support\Str::uuid(),
-            'type'              => 'order_created',
-            'notifiable_type'   => User::class,
-            'notifiable_id'     => $user->id,
-            'data'              => json_encode(['message' => 'Test']),
-            'read_at'           => null,
+            'id' => Str::uuid(),
+            'type' => 'order_created',
+            'notifiable_type' => User::class,
+            'notifiable_id' => $user->id,
+            'data' => json_encode(['message' => 'Test']),
+            'read_at' => null,
         ]);
 
         $response = $this->actingAs($user)->getJson('/api/v1/notifications');
@@ -118,12 +118,12 @@ class NotificationTest extends TestCase
         $user = $this->createUser('buyer');
 
         $notification = DatabaseNotification::create([
-            'id'                => \Illuminate\Support\Str::uuid(),
-            'type'              => 'order_created',
-            'notifiable_type'   => User::class,
-            'notifiable_id'     => $user->id,
-            'data'              => json_encode(['message' => 'Test']),
-            'read_at'           => null,
+            'id' => Str::uuid(),
+            'type' => 'order_created',
+            'notifiable_type' => User::class,
+            'notifiable_id' => $user->id,
+            'data' => json_encode(['message' => 'Test']),
+            'read_at' => null,
         ]);
 
         $response = $this->actingAs($user)->putJson("/api/v1/notifications/{$notification->id}/read");
@@ -139,21 +139,21 @@ class NotificationTest extends TestCase
         $user = $this->createUser('buyer');
 
         DatabaseNotification::create([
-            'id'                => \Illuminate\Support\Str::uuid(),
-            'type'              => 'order_created',
-            'notifiable_type'   => User::class,
-            'notifiable_id'     => $user->id,
-            'data'              => json_encode(['message' => 'Test']),
-            'read_at'           => null,
+            'id' => Str::uuid(),
+            'type' => 'order_created',
+            'notifiable_type' => User::class,
+            'notifiable_id' => $user->id,
+            'data' => json_encode(['message' => 'Test']),
+            'read_at' => null,
         ]);
 
         DatabaseNotification::create([
-            'id'                => \Illuminate\Support\Str::uuid(),
-            'type'              => 'order_created',
-            'notifiable_type'   => User::class,
-            'notifiable_id'     => $user->id,
-            'data'              => json_encode(['message' => 'Test']),
-            'read_at'           => null,
+            'id' => Str::uuid(),
+            'type' => 'order_created',
+            'notifiable_type' => User::class,
+            'notifiable_id' => $user->id,
+            'data' => json_encode(['message' => 'Test']),
+            'read_at' => null,
         ]);
 
         $response = $this->actingAs($user)->putJson('/api/v1/notifications/read-all');
@@ -172,12 +172,12 @@ class NotificationTest extends TestCase
         $user2 = $this->createUser('seller');
 
         $notification = DatabaseNotification::create([
-            'id'                => \Illuminate\Support\Str::uuid(),
-            'type'              => 'order_created',
-            'notifiable_type'   => User::class,
-            'notifiable_id'     => $user1->id,
-            'data'              => json_encode(['message' => 'Test']),
-            'read_at'           => null,
+            'id' => Str::uuid(),
+            'type' => 'order_created',
+            'notifiable_type' => User::class,
+            'notifiable_id' => $user1->id,
+            'data' => json_encode(['message' => 'Test']),
+            'read_at' => null,
         ]);
 
         $this->actingAs($user2)->putJson("/api/v1/notifications/{$notification->id}/read")
@@ -199,18 +199,18 @@ class NotificationTest extends TestCase
         $wallet = Wallet::where('user_id', $seller->id)->first();
 
         $withdrawal = Withdrawal::create([
-            'wallet_id'      => $wallet->id,
-            'amount'         => 1000000,
-            'bank_name'      => 'BCA',
-            'account_name'   => 'Test',
+            'wallet_id' => $wallet->id,
+            'amount' => 1000000,
+            'bank_name' => 'BCA',
+            'account_name' => 'Test',
             'account_number' => '123',
-            'status'         => 'approved',
+            'status' => 'approved',
         ]);
 
         WithdrawalApprovedEvent::dispatch($withdrawal);
 
         $this->assertDatabaseHas('notifications', [
-            'notifiable_id'   => $seller->id,
+            'notifiable_id' => $seller->id,
             'notifiable_type' => User::class,
         ]);
     }
@@ -221,19 +221,19 @@ class NotificationTest extends TestCase
         $wallet = Wallet::where('user_id', $seller->id)->first();
 
         $withdrawal = Withdrawal::create([
-            'wallet_id'      => $wallet->id,
-            'amount'         => 1000000,
-            'bank_name'      => 'BCA',
-            'account_name'   => 'Test',
+            'wallet_id' => $wallet->id,
+            'amount' => 1000000,
+            'bank_name' => 'BCA',
+            'account_name' => 'Test',
             'account_number' => '123',
-            'status'         => 'rejected',
+            'status' => 'rejected',
             'rejection_reason' => 'Data tidak sesuai',
         ]);
 
         WithdrawalRejectedEvent::dispatch($withdrawal);
 
         $this->assertDatabaseHas('notifications', [
-            'notifiable_id'   => $seller->id,
+            'notifiable_id' => $seller->id,
             'notifiable_type' => User::class,
         ]);
     }
@@ -246,12 +246,12 @@ class NotificationTest extends TestCase
 
         for ($i = 0; $i < 20; $i++) {
             DatabaseNotification::create([
-                'id'                => \Illuminate\Support\Str::uuid(),
-                'type'              => 'order_created',
-                'notifiable_type'   => User::class,
-                'notifiable_id'     => $user->id,
-                'data'              => json_encode(['message' => "Test $i"]),
-                'read_at'           => null,
+                'id' => Str::uuid(),
+                'type' => 'order_created',
+                'notifiable_type' => User::class,
+                'notifiable_id' => $user->id,
+                'data' => json_encode(['message' => "Test $i"]),
+                'read_at' => null,
             ]);
         }
 
@@ -278,12 +278,12 @@ class NotificationTest extends TestCase
         $user = $this->createUser('buyer');
 
         $notification = DatabaseNotification::create([
-            'id'                => \Illuminate\Support\Str::uuid(),
-            'type'              => 'order_created',
-            'notifiable_type'   => User::class,
-            'notifiable_id'     => $user->id,
-            'data'              => json_encode(['message' => 'Test']),
-            'read_at'           => null,
+            'id' => Str::uuid(),
+            'type' => 'order_created',
+            'notifiable_type' => User::class,
+            'notifiable_id' => $user->id,
+            'data' => json_encode(['message' => 'Test']),
+            'read_at' => null,
         ]);
 
         $response = $this->actingAs($user)->putJson("/api/v1/notifications/{$notification->id}/read");

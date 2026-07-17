@@ -1,17 +1,20 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Events\InspectionCompletedEvent;
 use App\Models\InspectionJob;
+use App\Models\TechnicianAvailability;
 use App\Models\TechnicianProfile;
 use App\Models\User;
+use App\Models\Wallet;
 use App\Notifications\InspectionJobAcceptedNotification;
 use App\Notifications\InspectionJobCancelledNotification;
 use App\Notifications\InspectionJobCreatedNotification;
 use App\Notifications\InspectionJobRejectedNotification;
 use App\Notifications\InspectionScheduledNotification;
-use App\Services\WalletService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -21,7 +24,7 @@ class InspectionJobService
      * Cek apakah teknisi bisa menerima job baru.
      * Teknisi tidak boleh punya job aktif (assigned/accepted/in_progress).
      */
-    public function canAcceptNewJob(string $technicianId): bool
+    public function canAcceptNewJob(int $technicianId): bool
     {
         return ! InspectionJob::where('technician_id', $technicianId)
             ->whereIn('status', ['assigned', 'accepted', 'in_progress'])
@@ -32,7 +35,7 @@ class InspectionJobService
      * Buat inspection job baru oleh buyer.
      * Buyer hanya perlu memilih teknisi — jadwal diinput nanti oleh teknisi.
      */
-    public function create(array $data, string $requestedBy): InspectionJob
+    public function create(array $data, int $requestedBy): InspectionJob
     {
         return DB::transaction(function () use ($data, $requestedBy) {
             $technicianId = $data['technician_id'];
@@ -52,15 +55,20 @@ class InspectionJobService
             $scheduleDatePlaceholder = now()->addDays(3)->toDateString();
 
             $job = InspectionJob::create([
-                'product_id'       => $data['product_id'],
-                'technician_id'    => $technicianId,
-                'requested_by'     => $requestedBy,
-                'schedule_date'    => $scheduleDatePlaceholder,
-                'fee'              => $fee,
-                'status'           => 'assigned',
-                'laptop_address'   => $data['laptop_address'],
+                'product_id' => $data['product_id'],
+                'technician_id' => $technicianId,
+                'requested_by' => $requestedBy,
+                'schedule_date' => $scheduleDatePlaceholder,
+                'fee' => $fee,
+                'status' => 'assigned',
+                'laptop_address' => $data['laptop_address'],
                 'inspection_notes' => $data['inspection_notes'] ?? null,
             ]);
+
+            $slot = TechnicianAvailability::find($data['availability_id'] ?? null);
+            if ($slot) {
+                $slot->update(['is_booked' => true]);
+            }
 
             $job->load(['product', 'requester']);
             User::find($technicianId)?->notify(new InspectionJobCreatedNotification($job));
@@ -69,12 +77,12 @@ class InspectionJobService
         });
     }
 
-    public function find(string $id): ?InspectionJob
+    public function find(int $id): ?InspectionJob
     {
         return InspectionJob::with(['product', 'technician', 'requester', 'report.photos', 'payment', 'rating'])->find($id);
     }
 
-    public function accept(InspectionJob $job, string $technicianId): InspectionJob
+    public function accept(InspectionJob $job, int $technicianId): InspectionJob
     {
         if ((int) $job->technician_id !== (int) $technicianId) {
             throw ValidationException::withMessages([
@@ -95,7 +103,7 @@ class InspectionJobService
         return $job->fresh();
     }
 
-    public function reject(InspectionJob $job, string $technicianId): InspectionJob
+    public function reject(InspectionJob $job, int $technicianId): InspectionJob
     {
         if ((int) $job->technician_id !== (int) $technicianId) {
             throw ValidationException::withMessages([
@@ -122,7 +130,7 @@ class InspectionJobService
      */
     public function cancel(InspectionJob $job, int $userId): InspectionJob
     {
-        $isBuyer     = (int) $job->requested_by === $userId;
+        $isBuyer = (int) $job->requested_by === $userId;
         $isTechnician = (int) $job->technician_id === $userId;
 
         if (! $isBuyer && ! $isTechnician) {
@@ -162,7 +170,7 @@ class InspectionJobService
     /**
      * Teknisi menginput jadwal inspeksi setelah menerima job.
      */
-    public function setSchedule(InspectionJob $job, string $technicianId, array $data): InspectionJob
+    public function setSchedule(InspectionJob $job, int $technicianId, array $data): InspectionJob
     {
         if ((int) $job->technician_id !== (int) $technicianId) {
             throw ValidationException::withMessages([
@@ -177,10 +185,10 @@ class InspectionJobService
         }
 
         $job->update([
-            'technician_schedule_date'  => $data['technician_schedule_date'],
-            'technician_schedule_time'  => $data['technician_schedule_time'],
+            'technician_schedule_date' => $data['technician_schedule_date'],
+            'technician_schedule_time' => $data['technician_schedule_time'],
             'technician_schedule_notes' => $data['technician_schedule_notes'] ?? null,
-            'scheduled_by_technician'   => true,
+            'scheduled_by_technician' => true,
         ]);
 
         $job->load(['product.brand', 'requester', 'product']);
@@ -209,7 +217,7 @@ class InspectionJobService
 
         $payment = $job->payment()->where('status', 'success')->latest()->first();
         if ($payment) {
-            $wallet = \App\Models\Wallet::firstOrCreate(
+            $wallet = Wallet::firstOrCreate(
                 ['user_id' => $job->technician_id],
                 ['available_balance' => 0, 'held_balance' => 0, 'frozen_balance' => 0]
             );
@@ -223,6 +231,7 @@ class InspectionJobService
         }
 
         InspectionCompletedEvent::dispatch($job->fresh());
+
         return $job->fresh();
     }
 }

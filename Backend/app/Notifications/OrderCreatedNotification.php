@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Notifications;
 
 use App\Models\Order;
@@ -20,11 +22,11 @@ class OrderCreatedNotification extends Notification
     public function toDatabase(object $notifiable): array
     {
         return [
-            'type'      => 'order_created',
-            'title'     => 'Pesanan Baru Dibuat',
-            'message'   => 'Pesanan Anda telah dibuat.',
-            'order_id'  => $this->order->id,
-            'product'   => $this->order->product->model,
+            'type' => 'order_created',
+            'title' => 'Pesanan Baru Dibuat',
+            'message' => 'Pesanan Anda telah dibuat.',
+            'order_id' => $this->order->id,
+            'product' => $this->order->product->model,
         ];
     }
 }

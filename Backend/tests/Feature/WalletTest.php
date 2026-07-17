@@ -1,10 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Feature;
 
 use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Order;
+use App\Models\Payment;
 use App\Models\Product;
 use App\Models\User;
 use App\Models\Wallet;
@@ -21,26 +24,28 @@ class WalletTest extends TestCase
 
     private function createUser(string $role, string $suffix = ''): User
     {
-        $key = $role . $suffix;
+        $key = $role.$suffix;
         $user = User::create([
-            'name'     => ucfirst($role) . $suffix,
-            'email'    => $key . '@wallet-test.com',
-            'phone'    => '08' . rand(100000000, 999999999),
+            'name' => ucfirst($role).$suffix,
+            'email' => $key.'@wallet-test.com',
+            'phone' => '08'.rand(100000000, 999999999),
             'password' => bcrypt('password'),
-            'role'     => $role,
-            'status'   => 'active',
+            'role' => $role,
+            'status' => 'active',
         ]);
         Wallet::create(['user_id' => $user->id, 'available_balance' => 0, 'held_balance' => 0]);
+
         return $user;
     }
 
     private function createProduct(User $seller, string $status = 'booked'): Product
     {
         $brand = Brand::firstOrCreate(['name' => 'WBrand'], ['slug' => 'wbrand']);
-        $cat   = Category::firstOrCreate(['name' => 'WCat'], ['slug' => 'wcat']);
+        $cat = Category::firstOrCreate(['name' => 'WCat'], ['slug' => 'wcat']);
+
         return Product::create([
             'seller_id' => $seller->id, 'brand_id' => $brand->id, 'category_id' => $cat->id,
-            'model' => 'W-Laptop', 'slug' => 'w-laptop-' . uniqid(),
+            'model' => 'W-Laptop', 'slug' => 'w-laptop-'.uniqid(),
             'cpu' => 'i5', 'ram' => 8, 'storage' => 256, 'storage_type' => 'SSD',
             'screen_size' => '14"', 'price' => 5000000, 'condition' => 'good',
             'location' => 'Jakarta', 'description' => 'desc', 'status' => $status,
@@ -50,17 +55,17 @@ class WalletTest extends TestCase
     private function createOrder(User $buyer, User $seller, Product $product, string $status = 'paid'): Order
     {
         return Order::create([
-            'order_number'       => 'INV-20260619-W' . rand(1000, 9999),
-            'product_id'         => $product->id,
-            'buyer_id'           => $buyer->id,
-            'seller_id'          => $seller->id,
-            'product_price'      => 5000000,
-            'platform_fee'       => 250000,
-            'total_amount'       => 5250000,
-            'product_snapshot'   => $product->toArray(),
+            'order_number' => 'INV-20260619-W'.rand(1000, 9999),
+            'product_id' => $product->id,
+            'buyer_id' => $buyer->id,
+            'seller_id' => $seller->id,
+            'product_price' => 5000000,
+            'platform_fee' => 250000,
+            'total_amount' => 5250000,
+            'product_snapshot' => $product->toArray(),
             'booking_expires_at' => Carbon::now()->addDay(),
-            'status'             => $status,
-            'paid_at'            => $status === 'paid' ? now() : null,
+            'status' => $status,
+            'paid_at' => $status === 'paid' ? now() : null,
         ]);
     }
 
@@ -84,7 +89,7 @@ class WalletTest extends TestCase
         $seller = $this->createUser('seller');
         $wallet = $this->sellerWallet($seller);
         $product = $this->createProduct($seller);
-        $order   = $this->createOrder($this->createUser('buyer'), $seller, $product);
+        $order = $this->createOrder($this->createUser('buyer'), $seller, $product);
 
         app(WalletService::class)->credit($wallet, 1000000, 'sale_income', $order, 'test credit');
 
@@ -97,7 +102,7 @@ class WalletTest extends TestCase
         $wallet = $this->sellerWallet($seller);
         $wallet->update(['available_balance' => 2000000]);
         $product = $this->createProduct($seller);
-        $order   = $this->createOrder($this->createUser('buyer'), $seller, $product);
+        $order = $this->createOrder($this->createUser('buyer'), $seller, $product);
 
         app(WalletService::class)->debit($wallet, 500000, 'withdraw', $order, 'test debit');
 
@@ -109,7 +114,7 @@ class WalletTest extends TestCase
         $seller = $this->createUser('seller');
         $wallet = $this->sellerWallet($seller);
         $product = $this->createProduct($seller);
-        $order   = $this->createOrder($this->createUser('buyer'), $seller, $product);
+        $order = $this->createOrder($this->createUser('buyer'), $seller, $product);
 
         $this->expectException(\Exception::class);
         $this->expectExceptionMessage('Saldo tidak mencukupi.');
@@ -121,10 +126,10 @@ class WalletTest extends TestCase
 
     public function test_move_to_escrow_increases_held_balance(): void
     {
-        $seller  = $this->createUser('seller');
-        $buyer   = $this->createUser('buyer');
+        $seller = $this->createUser('seller');
+        $buyer = $this->createUser('buyer');
         $product = $this->createProduct($seller);
-        $order   = $this->createOrder($buyer, $seller, $product);
+        $order = $this->createOrder($buyer, $seller, $product);
 
         app(EscrowService::class)->moveToEscrow($order);
 
@@ -134,17 +139,17 @@ class WalletTest extends TestCase
 
         $this->assertDatabaseHas('wallet_transactions', [
             'wallet_id' => $wallet->id,
-            'type'      => 'sale_income',
-            'status'    => 'escrow',
+            'type' => 'sale_income',
+            'status' => 'escrow',
         ]);
     }
 
     public function test_release_escrow_moves_held_to_available(): void
     {
-        $seller  = $this->createUser('seller');
-        $buyer   = $this->createUser('buyer');
+        $seller = $this->createUser('seller');
+        $buyer = $this->createUser('buyer');
         $product = $this->createProduct($seller);
-        $order   = $this->createOrder($buyer, $seller, $product);
+        $order = $this->createOrder($buyer, $seller, $product);
 
         app(EscrowService::class)->moveToEscrow($order);
 
@@ -157,17 +162,17 @@ class WalletTest extends TestCase
 
         $this->assertDatabaseHas('wallet_transactions', [
             'wallet_id' => $wallet->id,
-            'type'      => 'escrow_release',
-            'status'    => 'released',
+            'type' => 'escrow_release',
+            'status' => 'released',
         ]);
     }
 
     public function test_refund_escrow_decreases_held_balance(): void
     {
-        $seller  = $this->createUser('seller');
-        $buyer   = $this->createUser('buyer');
+        $seller = $this->createUser('seller');
+        $buyer = $this->createUser('buyer');
         $product = $this->createProduct($seller);
-        $order   = $this->createOrder($buyer, $seller, $product);
+        $order = $this->createOrder($buyer, $seller, $product);
 
         app(EscrowService::class)->moveToEscrow($order);
         app(EscrowService::class)->refundEscrow($order);
@@ -178,8 +183,8 @@ class WalletTest extends TestCase
 
         $this->assertDatabaseHas('wallet_transactions', [
             'wallet_id' => $wallet->id,
-            'type'      => 'refund',
-            'status'    => 'refunded',
+            'type' => 'refund',
+            'status' => 'refunded',
         ]);
     }
 
@@ -187,10 +192,10 @@ class WalletTest extends TestCase
 
     public function test_duplicate_release_is_prevented(): void
     {
-        $seller  = $this->createUser('seller');
-        $buyer   = $this->createUser('buyer');
+        $seller = $this->createUser('seller');
+        $buyer = $this->createUser('buyer');
         $product = $this->createProduct($seller);
-        $order   = $this->createOrder($buyer, $seller, $product);
+        $order = $this->createOrder($buyer, $seller, $product);
 
         app(EscrowService::class)->moveToEscrow($order);
         app(EscrowService::class)->releaseEscrow($order);
@@ -210,10 +215,10 @@ class WalletTest extends TestCase
 
     public function test_refund_without_prior_escrow_is_skipped(): void
     {
-        $seller  = $this->createUser('seller');
-        $buyer   = $this->createUser('buyer');
+        $seller = $this->createUser('seller');
+        $buyer = $this->createUser('buyer');
         $product = $this->createProduct($seller);
-        $order   = $this->createOrder($buyer, $seller, $product);
+        $order = $this->createOrder($buyer, $seller, $product);
 
         // No moveToEscrow called first
         app(EscrowService::class)->refundEscrow($order);
@@ -227,10 +232,10 @@ class WalletTest extends TestCase
 
     public function test_wallet_transactions_store_audit_trail(): void
     {
-        $seller  = $this->createUser('seller');
-        $buyer   = $this->createUser('buyer');
+        $seller = $this->createUser('seller');
+        $buyer = $this->createUser('buyer');
         $product = $this->createProduct($seller);
-        $order   = $this->createOrder($buyer, $seller, $product);
+        $order = $this->createOrder($buyer, $seller, $product);
 
         app(EscrowService::class)->moveToEscrow($order);
 
@@ -239,33 +244,33 @@ class WalletTest extends TestCase
         $this->assertNotNull($txn->balance_before);
         $this->assertNotNull($txn->balance_after);
         $this->assertEquals($order->id, $txn->reference_id);
-        $this->assertEquals(\App\Models\Order::class, $txn->reference_type);
+        $this->assertEquals(Order::class, $txn->reference_type);
     }
 
     // ========== Webhook integration ==========
 
     public function test_webhook_success_triggers_escrow_hold(): void
     {
-        $seller  = $this->createUser('seller');
-        $buyer   = $this->createUser('buyer');
+        $seller = $this->createUser('seller');
+        $buyer = $this->createUser('buyer');
         $product = $this->createProduct($seller);
-        $order   = $this->createOrder($buyer, $seller, $product, 'waiting_payment');
-        \App\Models\Payment::create([
+        $order = $this->createOrder($buyer, $seller, $product, 'waiting_payment');
+        Payment::create([
             'order_id' => $order->id, 'snap_token' => 'tok', 'gross_amount' => 5250000, 'status' => 'pending',
         ]);
 
-        $serverKey   = config('services.midtrans.server_key');
+        $serverKey = config('services.midtrans.server_key');
         $grossAmount = '5250000.00';
-        $statusCode  = '200';
+        $statusCode = '200';
         $payload = [
-            'transaction_id'     => 'txn-webhook-escrow',
-            'order_id'           => $order->order_number,
+            'transaction_id' => 'txn-webhook-escrow',
+            'order_id' => $order->order_number,
             'transaction_status' => 'settlement',
-            'fraud_status'       => 'accept',
-            'payment_type'       => 'bank_transfer',
-            'gross_amount'       => $grossAmount,
-            'status_code'        => $statusCode,
-            'signature_key'      => hash('sha512', $order->order_number . $statusCode . $grossAmount . $serverKey),
+            'fraud_status' => 'accept',
+            'payment_type' => 'bank_transfer',
+            'gross_amount' => $grossAmount,
+            'status_code' => $statusCode,
+            'signature_key' => hash('sha512', $order->order_number.$statusCode.$grossAmount.$serverKey),
         ];
 
         $this->postJson('/api/v1/payments/webhook', $payload)->assertStatus(200);
@@ -278,10 +283,10 @@ class WalletTest extends TestCase
 
     public function test_confirm_received_releases_escrow_to_seller(): void
     {
-        $seller  = $this->createUser('seller');
-        $buyer   = $this->createUser('buyer');
+        $seller = $this->createUser('seller');
+        $buyer = $this->createUser('buyer');
         $product = $this->createProduct($seller);
-        $order   = $this->createOrder($buyer, $seller, $product, 'shipped');
+        $order = $this->createOrder($buyer, $seller, $product, 'shipped');
 
         // Pre-populate escrow
         app(EscrowService::class)->moveToEscrow($order);
@@ -313,10 +318,10 @@ class WalletTest extends TestCase
 
     public function test_user_can_view_wallet_transactions(): void
     {
-        $seller  = $this->createUser('seller');
-        $buyer   = $this->createUser('buyer');
+        $seller = $this->createUser('seller');
+        $buyer = $this->createUser('buyer');
         $product = $this->createProduct($seller);
-        $order   = $this->createOrder($buyer, $seller, $product);
+        $order = $this->createOrder($buyer, $seller, $product);
 
         app(EscrowService::class)->moveToEscrow($order);
 
@@ -339,8 +344,12 @@ class WalletTest extends TestCase
         $wallet = $this->sellerWallet($seller);
         $wallet->update(['available_balance' => 2000000]);
 
-        $this->actingAs($seller)->postJson('/api/v1/wallet/withdraw', ['amount' => 500000])
-            ->assertStatus(200);
+        $this->actingAs($seller)->postJson('/api/v1/withdrawals', [
+            'amount' => 500000,
+            'bank_name' => 'BCA',
+            'account_name' => 'Test',
+            'account_number' => '123',
+        ])->assertStatus(201); // Withdrawal is created via new endpoint which returns 201
 
         $this->assertEquals(1500000, (float) $wallet->fresh()->available_balance);
     }

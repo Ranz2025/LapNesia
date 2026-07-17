@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Console\Commands;
 
 use App\Models\Order;
@@ -11,10 +13,12 @@ use Illuminate\Support\Facades\Log;
 
 class AutoReleaseEscrow extends Command
 {
-    protected $signature   = 'escrow:auto-release';
+    protected $signature = 'escrow:auto-release';
+
     protected $description = 'Auto-complete orders where resi input and 3 business days passed (BR-18)';
 
-    public function __construct(protected EscrowService $escrow) {
+    public function __construct(protected EscrowService $escrow)
+    {
         parent::__construct();
     }
 
@@ -30,6 +34,7 @@ class AutoReleaseEscrow extends Command
 
         if ($orders->isEmpty()) {
             $this->info('No orders to auto-complete.');
+
             return 0;
         }
 
@@ -50,6 +55,7 @@ class AutoReleaseEscrow extends Command
         }
 
         $this->info("Auto-released {$released} orders.");
+
         return 0;
     }
 
@@ -59,8 +65,11 @@ class AutoReleaseEscrow extends Command
         $subtracted = 0;
         while ($subtracted < $days) {
             $d->subDay();
-            if (!$d->isWeekend()) $subtracted++;
+            if (! $d->isWeekend()) {
+                $subtracted++;
+            }
         }
+
         return $d;
     }
 }

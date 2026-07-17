@@ -1,9 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Models\Order;
 use App\Models\Wallet;
+use App\Models\WalletTransaction;
 use Illuminate\Support\Facades\DB;
 
 class EscrowService
@@ -42,7 +45,7 @@ class EscrowService
             $wallet = Wallet::where('user_id', $order->seller_id)->lockForUpdate()->firstOrFail();
 
             // Idempotency: skip if already released for this order
-            $alreadyReleased = \App\Models\WalletTransaction::where('wallet_id', $wallet->id)
+            $alreadyReleased = WalletTransaction::where('wallet_id', $wallet->id)
                 ->where('reference_id', $order->id)
                 ->where('type', 'escrow_release')
                 ->exists();
@@ -74,13 +77,13 @@ class EscrowService
             $wallet = Wallet::where('user_id', $order->seller_id)->lockForUpdate()->firstOrFail();
 
             // Only refund if there is an escrow hold for this order
-            $hasEscrow = \App\Models\WalletTransaction::where('wallet_id', $wallet->id)
+            $hasEscrow = WalletTransaction::where('wallet_id', $wallet->id)
                 ->where('reference_id', $order->id)
                 ->where('type', 'sale_income')
                 ->where('status', 'escrow')
                 ->exists();
 
-            if (!$hasEscrow) {
+            if (! $hasEscrow) {
                 return;
             }
 

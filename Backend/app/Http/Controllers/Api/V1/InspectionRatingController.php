@@ -1,15 +1,19 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\InspectionRatingResource;
 use App\Models\InspectionJob;
 use App\Models\InspectionRating;
+use App\Models\TechnicianProfile;
 use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 
 class InspectionRatingController extends Controller
 {
@@ -24,13 +28,7 @@ class InspectionRatingController extends Controller
 
         $job = InspectionJob::findOrFail($jobId);
 
-        if ((int) $job->requested_by !== (int) $request->user()->id) {
-            return $this->errorResponse('Anda tidak memiliki akses.', 403);
-        }
-
-        if ($job->status !== 'completed') {
-            return $this->errorResponse('Rating hanya bisa diberikan setelah inspeksi selesai.', 422);
-        }
+        Gate::authorize('rate', $job);
 
         if (InspectionRating::where('job_id', $job->id)->exists()) {
             return $this->errorResponse('Rating untuk inspeksi ini sudah pernah diberikan.', 409);
@@ -38,18 +36,18 @@ class InspectionRatingController extends Controller
 
         $rating = DB::transaction(function () use ($request, $job) {
             $rating = InspectionRating::create([
-                'job_id'       => $job->id,
-                'technician_id'=> $job->technician_id,
-                'buyer_id'     => $job->requested_by,
-                'rating'       => $request->rating,
-                'review'       => $request->review,
+                'job_id' => $job->id,
+                'technician_id' => $job->technician_id,
+                'buyer_id' => $job->requested_by,
+                'rating' => $request->rating,
+                'review' => $request->review,
             ]);
 
             // Recalculate rating_avg di TechnicianProfile
             $avg = InspectionRating::where('technician_id', $job->technician_id)
                 ->avg('rating');
 
-            \App\Models\TechnicianProfile::where('user_id', $job->technician_id)
+            TechnicianProfile::where('user_id', $job->technician_id)
                 ->update(['rating_avg' => round($avg, 2)]);
 
             return $rating;
@@ -61,9 +59,10 @@ class InspectionRatingController extends Controller
     public function show(string $jobId): JsonResponse
     {
         $rating = InspectionRating::where('job_id', $jobId)->first();
-        if (!$rating) {
+        if (! $rating) {
             return $this->errorResponse('Rating tidak ditemukan.', 404);
         }
+
         return $this->successResponse(new InspectionRatingResource($rating));
     }
 }

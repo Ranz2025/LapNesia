@@ -1,0 +1,15 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+
+    paths:
+        - app
+
+    level: 1
+
+    excludePaths:
+        - app/Console/Kernel.php (?)
+        - app/Exceptions/Handler.php (?)
+
+    reportUnmatchedIgnoredErrors: false

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Models\Order;
@@ -7,7 +9,6 @@ use App\Models\ProductReturn;
 use App\Models\Wallet;
 use App\Notifications\ReturnRequestedNotification;
 use App\Notifications\ReturnStatusUpdatedNotification;
-use App\Services\WalletService;
 use Illuminate\Support\Facades\DB;
 
 class ReturnService
@@ -15,7 +16,7 @@ class ReturnService
     public function __construct(protected WalletService $walletService) {}
 
     /** Buyer mengajukan return */
-    public function request(Order $order, string $buyerId, string $reason): ProductReturn
+    public function request(Order $order, int $buyerId, string $reason): ProductReturn
     {
         if ((int) $order->buyer_id !== (int) $buyerId) {
             throw new \Exception('Anda tidak memiliki akses ke order ini.');
@@ -32,11 +33,11 @@ class ReturnService
 
         $return = DB::transaction(function () use ($order, $buyerId, $reason) {
             return ProductReturn::create([
-                'order_id'  => $order->id,
-                'buyer_id'  => $buyerId,
+                'order_id' => $order->id,
+                'buyer_id' => $buyerId,
                 'seller_id' => $order->seller_id,
-                'reason'    => $reason,
-                'status'    => 'pending',
+                'reason' => $reason,
+                'status' => 'pending',
             ]);
         });
 
@@ -50,7 +51,7 @@ class ReturnService
     /** Seller approve/reject return */
     public function updateStatus(ProductReturn $return, string $status, ?string $sellerNotes = null): ProductReturn
     {
-        if (!in_array($status, ['approved', 'rejected'])) {
+        if (! in_array($status, ['approved', 'rejected'])) {
             throw new \Exception('Status tidak valid.');
         }
 
@@ -59,7 +60,7 @@ class ReturnService
         }
 
         $updates = [
-            'status'       => $status,
+            'status' => $status,
             'seller_notes' => $sellerNotes,
         ];
 
@@ -79,7 +80,7 @@ class ReturnService
     }
 
     /** Buyer input resi return (kirim barang kembali) */
-    public function submitResi(ProductReturn $return, string $buyerId, string $resi): ProductReturn
+    public function submitResi(ProductReturn $return, int $buyerId, string $resi): ProductReturn
     {
         if ((int) $return->buyer_id !== (int) $buyerId) {
             throw new \Exception('Anda tidak memiliki akses.');
@@ -97,7 +98,7 @@ class ReturnService
     /** Admin tandai return selesai (barang sudah diterima seller) */
     public function completeReturn(ProductReturn $return, ?string $adminNotes = null): ProductReturn
     {
-        if (!in_array($return->status, ['approved'])) {
+        if (! in_array($return->status, ['approved'])) {
             throw new \Exception('Pengembalian belum disetujui atau sudah diproses.');
         }
 
@@ -106,8 +107,8 @@ class ReturnService
 
         DB::transaction(function () use ($return, $order, $adminNotes) {
             $return->update([
-                'status'       => 'completed',
-                'admin_notes'  => $adminNotes,
+                'status' => 'completed',
+                'admin_notes' => $adminNotes,
                 'completed_at' => now(),
             ]);
 
@@ -124,7 +125,7 @@ class ReturnService
             $this->walletService->debit(
                 $sellerWallet,
                 $refundAmount,
-                'return_debit',
+                'refund',
                 $return,
                 "Potongan saldo return untuk order {$order->order_number}"
             );

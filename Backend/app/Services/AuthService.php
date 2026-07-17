@@ -1,10 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
+use App\Models\TechnicianProfile;
 use App\Models\User;
 use App\Models\Wallet;
-use App\Models\TechnicianProfile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
@@ -32,16 +34,16 @@ class AuthService
 
             // Create Wallet automatically
             Wallet::create([
-                'user_id'           => $user->id,
+                'user_id' => $user->id,
                 'available_balance' => 0,
-                'held_balance'      => 0,
-                'frozen_balance'    => 0,
+                'held_balance' => 0,
+                'frozen_balance' => 0,
             ]);
 
             // Buat TechnicianProfile dengan biaya inspeksi default
             if ($user->role === 'technician') {
                 TechnicianProfile::create([
-                    'user_id'        => $user->id,
+                    'user_id' => $user->id,
                     'inspection_fee' => 150000,
                 ]);
             }
@@ -59,7 +61,7 @@ class AuthService
     {
         $user = User::where('email', $credentials['email'])->first();
 
-        if (!$user || !Hash::check($credentials['password'], $user->password)) {
+        if (! $user || ! Hash::check($credentials['password'], $user->password)) {
             throw ValidationException::withMessages([
                 'email' => ['Email atau password salah.'],
             ]);

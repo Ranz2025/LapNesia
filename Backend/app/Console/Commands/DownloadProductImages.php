@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
@@ -8,6 +10,7 @@ use Illuminate\Support\Facades\Storage;
 class DownloadProductImages extends Command
 {
     protected $signature = 'products:download-images';
+
     protected $description = 'Download 20 laptop images and save to storage';
 
     public function handle()
@@ -36,7 +39,7 @@ class DownloadProductImages extends Command
         ];
 
         $disk = Storage::disk('public');
-        if (!$disk->exists('products')) {
+        if (! $disk->exists('products')) {
             $disk->makeDirectory('products');
         }
 
@@ -47,7 +50,7 @@ class DownloadProductImages extends Command
             try {
                 $content = file_get_contents($url);
                 if ($content) {
-                    $disk->put('products/' . $filename, $content);
+                    $disk->put('products/'.$filename, $content);
                     $downloaded[] = $filename;
                     $this->info("✓ Downloaded: $filename");
                 } else {
@@ -56,19 +59,21 @@ class DownloadProductImages extends Command
                 }
             } catch (\Exception $e) {
                 $failed[] = $filename;
-                $this->warn("✗ Error downloading $filename: " . $e->getMessage());
+                $this->warn("✗ Error downloading $filename: ".$e->getMessage());
             }
         }
 
         $this->line("\n=== SUMMARY ===");
-        $this->info("Downloaded: " . count($downloaded) . "/20");
-        $this->warn("Failed: " . count($failed) . "/20");
+        $this->info('Downloaded: '.count($downloaded).'/20');
+        $this->warn('Failed: '.count($failed).'/20');
 
         if (count($downloaded) >= 15) {
             $this->info("\n✓ Sufficient images downloaded! Ready to seed.");
+
             return 0;
         } else {
             $this->error("\n✗ Too few images downloaded. Please check your internet connection.");
+
             return 1;
         }
     }

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Notifications;
 
 use App\Models\InspectionJob;
@@ -20,11 +22,11 @@ class InspectionCompletedNotification extends Notification
     public function toDatabase(object $notifiable): array
     {
         return [
-            'type'     => 'inspection_completed',
-            'title'    => 'Inspeksi Selesai',
-            'message'  => 'Inspeksi untuk pesanan Anda telah selesai.',
-            'job_id'   => $this->job->id,
-            'product'  => $this->job->product->model,
+            'type' => 'inspection_completed',
+            'title' => 'Inspeksi Selesai',
+            'message' => 'Inspeksi untuk pesanan Anda telah selesai.',
+            'job_id' => $this->job->id,
+            'product' => $this->job->product->model,
         ];
     }
 }

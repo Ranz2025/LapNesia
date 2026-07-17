@@ -1,15 +1,18 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use App\Http\Resources\PaymentResource;
 use App\Models\Order;
 use App\Models\Payment;
+use App\Services\InspectionPaymentService;
 use App\Services\PaymentService;
 use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 
 class PaymentController extends Controller
@@ -18,73 +21,47 @@ class PaymentController extends Controller
 
     public function __construct(protected PaymentService $service) {}
 
-    public function pay(Request $request, Order $order): JsonResponse
+    public function pay(Request $request, string $orderId): JsonResponse
     {
-        if ((int) $order->buyer_id !== (int) $request->user()->id) {
-            return $this->errorResponse('Anda tidak memiliki akses ke order ini.', 403);
-        }
+        $order = Order::with('buyer')->findOrFail($orderId);
+
+        Gate::authorize('pay', $order);
 
         try {
-            // Reuse existing pending payment if snap_token already exists
-            $existing = Payment::where('order_id', $order->id)
-                ->where('status', 'pending')
-                ->whereNotNull('snap_token')
-                ->latest()
-                ->first();
+            $payment = $this->service->createPayment($order);
 
-            if ($existing) {
-                return $this->successResponse(new PaymentResource($existing), 'Payment sudah ada.', 200);
-            }
-
-            $payment = $this->service->createPayment($order->load('buyer'));
-            return $this->successResponse(new PaymentResource($payment), 'Payment berhasil dibuat.', 201);
+            return $this->successResponse($payment, 'Payment berhasil dibuat.', 201);
         } catch (\Exception $e) {
             return $this->errorResponse($e->getMessage(), 422);
         }
+    }
+
+    public function show(Request $request, string $paymentId): JsonResponse
+    {
+        $payment = Payment::with('order')->findOrFail($paymentId);
+
+        Gate::authorize('view', $payment);
+
+        return $this->successResponse($payment);
     }
 
     public function webhook(Request $request): JsonResponse
     {
         try {
             $payload = $request->all();
-            Log::info("Webhook received", ['payload' => $payload]);
 
-            $orderId = $payload['order_id'] ?? '';
-            $signatureKey = $payload['signature_key'] ?? 'MISSING';
-            $calculatedSignature = hash('sha512', $orderId . ($payload['status_code'] ?? '') . ($payload['gross_amount'] ?? '') . config('services.midtrans.server_key'));
-            $signatureValid = hash_equals($calculatedSignature, $signatureKey);
-
-            Log::info("Webhook check", [
-                'order_id' => $orderId,
-                'signature_present' => isset($payload['signature_key']),
-                'signature_valid' => $signatureValid,
-                'is_inspection' => str_starts_with((string) $orderId, 'INSPECTION-')
-            ]);
-
-            if (str_starts_with((string) $orderId, 'INSPECTION-')) {
-                // Gunakan InspectionPaymentService untuk memproses
-                app(\App\Services\InspectionPaymentService::class)->handleWebhook($payload);
+            // Route to inspection payment service if inspection webhook
+            if (str_starts_with((string) ($payload['order_id'] ?? ''), 'INSPECTION-')) {
+                app(InspectionPaymentService::class)->handleWebhook($payload);
             } else {
-                // Gunakan PaymentService bawaan
                 $this->service->handleWebhook($payload);
             }
 
             return response()->json(['status' => 'ok']);
         } catch (\Exception $e) {
+            Log::error('Webhook error: '.$e->getMessage(), ['payload' => $request->all()]);
+
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 400);
         }
-    }
-
-    public function show(Request $request, string $id): JsonResponse
-    {
-        $payment = Payment::with('order')->findOrFail($id);
-
-        if (!in_array($request->user()->role, ['owner', 'admin'])
-            && (int) $payment->order->buyer_id !== (int) $request->user()->id
-            && (int) $payment->order->seller_id !== (int) $request->user()->id) {
-            return $this->errorResponse('Anda tidak memiliki akses.', 403);
-        }
-
-        return $this->successResponse(new PaymentResource($payment));
     }
 }

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Events\OrderCreatedEvent;
@@ -15,7 +17,7 @@ class OrderService
 {
     public function __construct(protected EscrowService $escrow) {}
 
-    public function create(array $data, string $buyerId): Order
+    public function create(array $data, int $buyerId): Order
     {
         return DB::transaction(function () use ($data, $buyerId) {
             $product = Product::lockForUpdate()->findOrFail($data['product_id']);
@@ -41,18 +43,18 @@ class OrderService
             $totalAmount = $product->price + $platformFee;
 
             $order = Order::create([
-                'order_number'       => $this->generateOrderNumber(),
-                'product_id'         => $product->id,
-                'buyer_id'           => $buyerId,
-                'seller_id'          => $product->seller_id,
-                'product_price'      => $product->price,
-                'platform_fee'       => $platformFee,
-                'total_amount'       => $totalAmount,
-                'product_snapshot'   => $product->toArray(),
+                'order_number' => $this->generateOrderNumber(),
+                'product_id' => $product->id,
+                'buyer_id' => $buyerId,
+                'seller_id' => $product->seller_id,
+                'product_price' => $product->price,
+                'platform_fee' => $platformFee,
+                'total_amount' => $totalAmount,
+                'product_snapshot' => $product->toArray(),
                 'booking_expires_at' => Carbon::now()->addHours(24),
-                'status'             => 'waiting_payment',
-                'notes'              => $data['notes'] ?? null,
-                'shipping_address'   => $data['shipping_address'],
+                'status' => 'waiting_payment',
+                'notes' => $data['notes'] ?? null,
+                'shipping_address' => $data['shipping_address'],
             ]);
 
             OrderCreatedEvent::dispatch($order);
@@ -75,7 +77,7 @@ class OrderService
                 // Kembalikan stok dan aktifkan kembali produk
                 $restoredStock = $product->stock + 1;
                 $product->update([
-                    'stock'  => $restoredStock,
+                    'stock' => $restoredStock,
                     'status' => 'active',
                 ]);
             }
@@ -88,9 +90,9 @@ class OrderService
     {
         DB::transaction(function () use ($order, $resiNumber) {
             $order->update([
-                'status'      => 'shipped',
+                'status' => 'shipped',
                 'resi_number' => $resiNumber,
-                'shipped_at'  => Carbon::now(),
+                'shipped_at' => Carbon::now(),
             ]);
         });
 
@@ -125,7 +127,7 @@ class OrderService
                 // Kembalikan stok dan aktifkan kembali produk
                 $restoredStock = $product->stock + 1;
                 $product->update([
-                    'stock'  => $restoredStock,
+                    'stock' => $restoredStock,
                     'status' => 'active',
                 ]);
             }
@@ -134,7 +136,7 @@ class OrderService
 
     protected function generateOrderNumber(): string
     {
-        $date      = Carbon::now()->format('Ymd');
+        $date = Carbon::now()->format('Ymd');
         $lastOrder = Order::whereDate('created_at', Carbon::today())
             ->orderBy('created_at', 'desc')
             ->first();

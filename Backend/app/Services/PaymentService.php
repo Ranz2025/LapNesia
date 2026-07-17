@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Events\PaymentSuccessEvent;
@@ -13,10 +15,10 @@ class PaymentService
 {
     public function __construct(protected EscrowService $escrow)
     {
-        MidtransConfig::$serverKey    = config('services.midtrans.server_key');
+        MidtransConfig::$serverKey = config('services.midtrans.server_key');
         MidtransConfig::$isProduction = config('services.midtrans.is_production');
-        MidtransConfig::$isSanitized  = config('services.midtrans.is_sanitized');
-        MidtransConfig::$is3ds        = config('services.midtrans.is_3ds');
+        MidtransConfig::$isSanitized = config('services.midtrans.is_sanitized');
+        MidtransConfig::$is3ds = config('services.midtrans.is_3ds');
     }
 
     public function createPayment(Order $order): Payment
@@ -27,34 +29,34 @@ class PaymentService
 
         $snapResult = Snap::createTransaction([
             'transaction_details' => [
-                'order_id'     => $order->order_number,
+                'order_id' => $order->order_number,
                 'gross_amount' => (int) $order->total_amount,
             ],
             'customer_details' => [
                 'first_name' => $order->buyer->name,
-                'email'      => $order->buyer->email,
-                'phone'      => $order->buyer->phone,
+                'email' => $order->buyer->email,
+                'phone' => $order->buyer->phone,
             ],
         ]);
 
         return Payment::create([
-            'order_id'          => $order->id,
-            'payment_gateway'   => 'midtrans',
-            'snap_token'        => $snapResult->token,
+            'order_id' => $order->id,
+            'payment_gateway' => 'midtrans',
+            'snap_token' => $snapResult->token,
             'snap_redirect_url' => $snapResult->redirect_url,
-            'gross_amount'      => $order->total_amount,
-            'status'            => 'pending',
+            'gross_amount' => $order->total_amount,
+            'status' => 'pending',
         ]);
     }
 
     public function handleWebhook(array $payload): void
     {
-        $transactionId     = $payload['transaction_id'] ?? null;
-        $orderId           = $payload['order_id'] ?? null;
+        $transactionId = $payload['transaction_id'] ?? null;
+        $orderId = $payload['order_id'] ?? null;
         $transactionStatus = $payload['transaction_status'] ?? null;
-        $fraudStatus       = $payload['fraud_status'] ?? null;
-        $paymentType       = $payload['payment_type'] ?? null;
-        $serverKey         = config('services.midtrans.server_key');
+        $fraudStatus = $payload['fraud_status'] ?? null;
+        $paymentType = $payload['payment_type'] ?? null;
+        $serverKey = config('services.midtrans.server_key');
 
         // Idempotency: Check if transaction is already settled/completed (terminal states)
         if ($transactionId) {
@@ -67,15 +69,15 @@ class PaymentService
         }
 
         // Signature validation - MUST exist, no default
-        if (!isset($payload['signature_key'])) {
+        if (! isset($payload['signature_key'])) {
             throw new \Exception('Missing webhook signature - possible tamper attempt');
         }
 
         $signatureKey = hash('sha512',
-            $orderId . $payload['status_code'] . $payload['gross_amount'] . $serverKey
+            $orderId.$payload['status_code'].$payload['gross_amount'].$serverKey
         );
 
-        if (!hash_equals($signatureKey, $payload['signature_key'])) {
+        if (! hash_equals($signatureKey, $payload['signature_key'])) {
             throw new \Exception('Invalid webhook signature.');
         }
 
@@ -93,12 +95,13 @@ class PaymentService
                         ->where('status', 'success')
                         ->first();
                     if ($existingPayment) {
-                        if ($existingPayment->transaction_id === $transactionId || 
+                        if ($existingPayment->transaction_id === $transactionId ||
                             ($existingPayment->transaction_id === null && $order->product && $order->product->status !== 'paid')) {
                             return; // idempotent - already processed
                         }
                     }
                 }
+
                 throw new \Exception("Order not in waiting_payment status: {$order->status}");
             }
 
@@ -109,7 +112,7 @@ class PaymentService
 
             // IDEMPOTENCY: Prevent reprocessing if payment already has transaction_id
             if ($payment->transaction_id !== null && $payment->transaction_id !== $transactionId) {
-                throw new \Exception("Payment already processed with different transaction_id");
+                throw new \Exception('Payment already processed with different transaction_id');
             }
 
             // Prevent reprocessing
@@ -118,16 +121,16 @@ class PaymentService
             }
 
             // VALIDATE amount matches expected
-            if ((float)$payload['gross_amount'] !== (float)$order->total_amount) {
+            if ((float) $payload['gross_amount'] !== (float) $order->total_amount) {
                 throw new \Exception(
                     "Amount mismatch: expected {$order->total_amount}, got {$payload['gross_amount']}"
                 );
             }
 
             $updates = [
-                'transaction_id'  => $transactionId,
-                'payment_type'    => $paymentType,
-                'signature_key'   => $payload['signature_key'],
+                'transaction_id' => $transactionId,
+                'payment_type' => $paymentType,
+                'signature_key' => $payload['signature_key'],
                 'webhook_payload' => $payload,
             ];
 
@@ -135,7 +138,7 @@ class PaymentService
                 ($transactionStatus === 'capture' && $fraudStatus === 'accept') ||
                 $transactionStatus === 'settlement'
             ) {
-                $updates['status']  = 'success';
+                $updates['status'] = 'success';
                 $updates['paid_at'] = now();
                 $payment->update($updates);
 

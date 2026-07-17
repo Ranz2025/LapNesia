@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -16,7 +18,7 @@ class InspectionReportPhoto extends Model
 
     protected $appends = ['url'];
 
-    public function report()
+    public function report(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(InspectionReport::class, 'inspection_report_id');
     }

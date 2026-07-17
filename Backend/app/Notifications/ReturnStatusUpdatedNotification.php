@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Notifications;
 
 use App\Models\ProductReturn;
@@ -12,7 +14,10 @@ class ReturnStatusUpdatedNotification extends Notification
 
     public function __construct(public ProductReturn $return) {}
 
-    public function via(object $notifiable): array { return ['database']; }
+    public function via(object $notifiable): array
+    {
+        return ['database'];
+    }
 
     public function toDatabase(object $notifiable): array
     {
@@ -20,25 +25,25 @@ class ReturnStatusUpdatedNotification extends Notification
         $isRejected = $this->return->status === 'rejected';
 
         if ($isApproved) {
-            $title   = 'Pengembalian Disetujui';
-            $message = 'Penjual menyetujui pengembalian barang pesanan ' . $this->return->order?->order_number . '. Silakan kirim barang kembali.';
+            $title = 'Pengembalian Disetujui';
+            $message = 'Penjual menyetujui pengembalian barang pesanan '.$this->return->order?->order_number.'. Silakan kirim barang kembali.';
         } elseif ($isRejected) {
-            $title   = 'Pengembalian Ditolak';
-            $message = 'Penjual menolak pengembalian barang pesanan ' . $this->return->order?->order_number . ($this->return->seller_notes ? ': ' . $this->return->seller_notes : '.');
+            $title = 'Pengembalian Ditolak';
+            $message = 'Penjual menolak pengembalian barang pesanan '.$this->return->order?->order_number.($this->return->seller_notes ? ': '.$this->return->seller_notes : '.');
         } else {
-            $title   = 'Status Pengembalian Diperbarui';
-            $message = 'Status pengembalian barang pesanan ' . $this->return->order?->order_number . ' diperbarui menjadi ' . $this->return->status . '.';
+            $title = 'Status Pengembalian Diperbarui';
+            $message = 'Status pengembalian barang pesanan '.$this->return->order?->order_number.' diperbarui menjadi '.$this->return->status.'.';
         }
 
         return [
-            'type'         => 'return_status_updated',
-            'title'        => $title,
-            'message'      => $message,
-            'return_id'    => $this->return->id,
-            'order_id'     => $this->return->order_id,
+            'type' => 'return_status_updated',
+            'title' => $title,
+            'message' => $message,
+            'return_id' => $this->return->id,
+            'order_id' => $this->return->order_id,
             'order_number' => $this->return->order?->order_number,
-            'status'       => $this->return->status,
-            'action_url'   => '/returns/' . $this->return->id,
+            'status' => $this->return->status,
+            'action_url' => '/returns/'.$this->return->id,
         ];
     }
 }

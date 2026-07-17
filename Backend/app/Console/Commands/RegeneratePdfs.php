@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Console\Commands;
 
 use App\Models\InspectionReport;
@@ -8,7 +10,8 @@ use Illuminate\Console\Command;
 
 class RegeneratePdfs extends Command
 {
-    protected $signature   = 'inspections:regenerate-pdfs';
+    protected $signature = 'inspections:regenerate-pdfs';
+
     protected $description = 'Re-generate semua PDF laporan inspeksi dengan template terbaru';
 
     public function handle(InspectionPdfService $pdfService): int
@@ -17,6 +20,7 @@ class RegeneratePdfs extends Command
 
         if ($reports->isEmpty()) {
             $this->info('Tidak ada laporan inspeksi yang ditemukan.');
+
             return 0;
         }
 
@@ -25,7 +29,7 @@ class RegeneratePdfs extends Command
         $bar->start();
 
         $success = 0;
-        $failed  = 0;
+        $failed = 0;
 
         foreach ($reports as $report) {
             try {

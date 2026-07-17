@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Notifications;
 
 use App\Models\TechnicianProfile;
@@ -25,7 +27,7 @@ class TechnicianCertificationUploadedNotification extends Notification
     {
         return [
             'type' => 'technician_certification_uploaded',
-            'message' => 'Teknisi ' . $this->technician->name . ' mengunggah sertifikat baru.',
+            'message' => 'Teknisi '.$this->technician->name.' mengunggah sertifikat baru.',
             'technician_id' => $this->technician->id,
             'technician_name' => $this->technician->name,
             'certification_url' => $this->profile->certification_url,

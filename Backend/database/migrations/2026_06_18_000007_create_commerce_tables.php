@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -25,7 +27,7 @@ return new class extends Migration
             $table->string('resi_number')->nullable();
             $table->enum('status', [
                 'waiting_payment', 'paid', 'shipped', 'completed',
-                'expired', 'refunded', 'disputed', 'cancelled'
+                'expired', 'refunded', 'disputed', 'cancelled',
             ])->default('waiting_payment');
             $table->boolean('is_disputed')->default(false);
             $table->text('dispute_reason')->nullable();

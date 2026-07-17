@@ -1,11 +1,16 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Resources;
 
 use App\Traits\MasksData;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
+/**
+ * @mixin \App\Models\User
+ */
 class UserResource extends JsonResource
 {
     use MasksData;
@@ -21,14 +26,14 @@ class UserResource extends JsonResource
         );
 
         return [
-            'id'                => $this->id,
-            'name'              => $this->name,
-            'email'             => $showFull ? $this->email : self::maskEmail($this->email),
-            'phone'             => $showFull ? $this->phone : self::maskPhone($this->phone),
-            'role'              => $this->role,
-            'status'            => $this->status,
-            'avg_rating'        => $this->avg_rating ?? 0,
-            'address'           => $showFull ? $this->address : null,
+            'id' => $this->id,
+            'name' => $this->name,
+            'email' => $showFull ? $this->email : self::maskEmail($this->email),
+            'phone' => $showFull ? $this->phone : self::maskPhone($this->phone),
+            'role' => $this->role,
+            'status' => $this->status,
+            'avg_rating' => $this->avg_rating ?? 0,
+            'address' => $showFull ? $this->address : null,
             'profile_photo_url' => $this->profile_photo_url,
             'technician_profile' => $showFull && $this->relationLoaded('technicianProfile') && $this->technicianProfile ? [
                 'id' => $this->technicianProfile->id,
@@ -36,9 +41,9 @@ class UserResource extends JsonResource
                 'bio' => $this->technicianProfile->bio,
                 'skills' => $this->technicianProfile->skills,
             ] : null,
-            'wallet'            => $showFull ? [
+            'wallet' => $showFull ? [
                 'available_balance' => $this->wallet->available_balance ?? 0,
-                'held_balance'      => $this->wallet->held_balance ?? 0,
+                'held_balance' => $this->wallet->held_balance ?? 0,
             ] : null,
             'created_at' => $this->created_at,
         ];

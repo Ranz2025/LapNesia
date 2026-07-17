@@ -15,12 +15,12 @@ function App() {
           key: import.meta.env.VITE_PUSHER_APP_KEY || "local",
           cluster: import.meta.env.VITE_PUSHER_CLUSTER || "mt",
           forceTLS: import.meta.env.VITE_PUSHER_SCHEME === "https",
-          wsHost: import.meta.env.VITE_PUSHER_HOST || window.location.hostname,
+          wsHost: import.meta.env.VITE_PUSHER_HOST || null,
           wsPort: import.meta.env.VITE_PUSHER_PORT || 6001,
           wssPort: import.meta.env.VITE_PUSHER_PORT || 6001,
           encrypted: true,
-          enabledTransports: ["ws", "wss"],
-          disabledTransports: [],
+          enabledTransports: import.meta.env.VITE_PUSHER_HOST ? ["ws", "wss"] : [],
+          disabledTransports: import.meta.env.VITE_PUSHER_HOST ? [] : ["ws", "wss"],
           Pusher,
         });
 

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Events;
 
 use Illuminate\Broadcasting\Channel;
@@ -13,6 +15,7 @@ class UserGrowthUpdated implements ShouldBroadcast
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public $count;
+
     public $date;
 
     public function __construct($count, $date)

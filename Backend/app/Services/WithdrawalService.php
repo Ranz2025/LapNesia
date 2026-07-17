@@ -1,74 +1,82 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Events\WithdrawalApprovedEvent;
+use App\Events\WithdrawalCreatedEvent;
 use App\Events\WithdrawalRejectedEvent;
 use App\Models\AuditLog;
 use App\Models\User;
 use App\Models\Wallet;
-use App\Models\Withdrawal;
+use App\Models\WalletTransaction;
+use App\Models\Withdrawal; // Import WalletTransaction
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Request; // Import Request facade
 
 class WithdrawalService
 {
     public function __construct(protected WalletService $walletService) {}
 
     /**
-     * Rule A-C: Create withdrawal, langsung auto-approved (tidak perlu persetujuan admin).
+     * Buat withdrawal baru dan *freeze* saldo secara atomik.
+     * Status awal adalah PENDING, menunggu persetujuan admin.
      */
     public function create(Wallet $wallet, array $data): Withdrawal
     {
         return DB::transaction(function () use ($wallet, $data) {
-            if ((float) $wallet->available_balance < $data['amount']) {
-                throw new \Exception('Saldo tidak mencukupi.');
+            // 1. Validasi saldo
+            if ((float) $wallet->available_balance < (float) $data['amount']) {
+                throw new \InvalidArgumentException('Saldo tidak mencukupi.');
             }
 
+            // 2. Simpan withdrawal dengan status PENDING
             $withdrawal = Withdrawal::create([
-                'wallet_id'      => $wallet->id,
-                'amount'         => $data['amount'],
-                'bank_name'      => $data['bank_name'],
-                'account_name'   => $data['account_name'],
+                'wallet_id' => $wallet->id,
+                'amount' => $data['amount'],
+                'bank_name' => $data['bank_name'],
+                'account_name' => $data['account_name'],
                 'account_number' => $data['account_number'],
-                'status'         => 'approved',
-                'processed_at'   => now(),
+                'status' => Withdrawal::STATUS_PENDING, // PENDING status
+                // 'processed_at' tidak diisi karena masih pending
             ]);
 
-            // Freeze saldo dengan reference yang BENAR (withdrawal, bukan wallet)
+            // 3. Freeze saldo. Type transaksi adalah WithdrawalCreated
             $this->walletService->freezeForWithdrawal(
                 $wallet,
-                $data['amount'],
-                'withdraw',
-                $withdrawal,  // CORRECT: withdrawal reference
-                'Withdrawal freeze'
+                (float) $data['amount'],
+                WalletTransaction::TYPE_FREEZE_FOR_WITHDRAWAL, // Gunakan konstanta
+                $withdrawal,
+                'Withdrawal requested - awaiting approval'
             );
 
-            $this->auditLog($withdrawal->wallet->user, 'withdrawal_created', $withdrawal);
+            // 4. Catat audit log
+            $this->auditLog($wallet->user, 'withdrawal_created', $withdrawal);
 
-            // Kirim notifikasi approved otomatis
-            WithdrawalApprovedEvent::dispatch($withdrawal->fresh());
+            // 5. Dispatch event
+            WithdrawalCreatedEvent::dispatch($withdrawal->fresh());
 
             return $withdrawal;
         });
     }
 
     /**
-     * Rule D: Admin approve withdrawal.
+     * Admin approve withdrawal.
      */
     public function approve(Withdrawal $withdrawal, User $admin): Withdrawal
     {
         return DB::transaction(function () use ($withdrawal, $admin) {
-            if ($withdrawal->status !== 'pending') {
+            if ($withdrawal->status !== Withdrawal::STATUS_PENDING) {
                 throw new \Exception('Withdrawal sudah diproses.');
             }
 
             $withdrawal->update([
-                'status'       => 'approved',
-                'approved_by'  => $admin->id,
+                'status' => Withdrawal::STATUS_APPROVED,
+                'approved_by' => $admin->id,
                 'processed_at' => now(),
             ]);
 
-            // Dana sudah dibekukan, tidak perlu debit lagi
             $this->auditLog($admin, 'withdrawal_approved', $withdrawal);
 
             WithdrawalApprovedEvent::dispatch($withdrawal->fresh());
@@ -78,29 +86,30 @@ class WithdrawalService
     }
 
     /**
-     * Rule E: Admin reject, kembalikan saldo ke available_balance.
+     * Admin reject, kembalikan saldo ke available_balance.
      */
     public function reject(Withdrawal $withdrawal, User $admin, string $reason): Withdrawal
     {
         return DB::transaction(function () use ($withdrawal, $admin, $reason) {
-            if ($withdrawal->status !== 'pending') {
+            if ($withdrawal->status !== Withdrawal::STATUS_PENDING) {
                 throw new \Exception('Withdrawal sudah diproses.');
             }
 
             $withdrawal->update([
-                'status'           => 'rejected',
-                'approved_by'      => $admin->id,
-                'processed_at'     => now(),
+                'status' => Withdrawal::STATUS_REJECTED,
+                'approved_by' => $admin->id, // Menggunakan approved_by sebagai rejected_by untuk saat ini
+                'processed_at' => now(),
                 'rejection_reason' => $reason,
             ]);
 
             // Kembalikan saldo yang dibekukan menggunakan releaseFreeze
+            // Type transaksi adalah withdrawal_rejected
             $this->walletService->releaseFreeze(
                 $withdrawal->wallet,
                 (float) $withdrawal->amount,
-                'withdraw',
+                'withdrawal_rejected',
                 $withdrawal,
-                'Withdrawal rejected - refund'
+                'Withdrawal rejected - refund to available balance'
             );
 
             $this->auditLog($admin, 'withdrawal_rejected', $withdrawal, ['reason' => $reason]);
@@ -117,13 +126,13 @@ class WithdrawalService
     private function auditLog(User $user, string $action, Withdrawal $withdrawal, array $extra = []): void
     {
         AuditLog::create([
-            'user_id'        => $user->id,
-            'action'         => $action,
-            'auditable_id'   => $withdrawal->id,
+            'user_id' => $user->id,
+            'action' => $action,
+            'auditable_id' => $withdrawal->id,
             'auditable_type' => Withdrawal::class,
-            'old_values'     => [],
-            'new_values'     => array_merge($withdrawal->toArray(), $extra),
-            'ip_address'     => request()->ip(),
+            'old_values' => [],
+            'new_values' => array_merge($withdrawal->toArray(), $extra),
+            'ip_address' => Request::ip() ?? '127.0.0.1', // Tangani null IP di CLI
         ]);
     }
 }

@@ -1,12 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Feature;
 
-use App\Models\AuditLog;
 use App\Models\User;
 use App\Models\Wallet;
 use App\Models\Withdrawal;
-use App\Models\WalletTransaction;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -16,17 +16,32 @@ class WithdrawalTest extends TestCase
 
     private function createUser(string $role, string $suffix = ''): User
     {
-        $key = $role . $suffix;
+        $key = $role.$suffix;
         $user = User::create([
-            'name'     => ucfirst($role) . $suffix,
-            'email'    => $key . '@withdraw-test.com',
-            'phone'    => '08' . rand(100000000, 999999999),
+            'name' => ucfirst($role).$suffix,
+            'email' => $key.'@withdraw-test.com',
+            'phone' => '08'.rand(100000000, 999999999),
             'password' => bcrypt('password'),
-            'role'     => $role,
-            'status'   => 'active',
+            'role' => $role,
+            'status' => 'active',
         ]);
         Wallet::create(['user_id' => $user->id, 'available_balance' => 0, 'held_balance' => 0]);
+
         return $user;
+    }
+
+    private function createWithdrawal(User $user, int $amount = 1000000, string $status = 'pending'): Withdrawal
+    {
+        $wallet = Wallet::where('user_id', $user->id)->first();
+
+        return Withdrawal::create([
+            'wallet_id' => $wallet->id,
+            'amount' => $amount,
+            'bank_name' => 'BCA', // Default valid bank name
+            'account_name' => 'Test User Account', // Default valid account name
+            'account_number' => '1234567890', // Default valid account number
+            'status' => $status,
+        ]);
     }
 
     // ========== Create Withdrawal ==========
@@ -38,23 +53,19 @@ class WithdrawalTest extends TestCase
         $wallet->update(['available_balance' => 5000000]);
 
         $response = $this->actingAs($seller)->postJson('/api/v1/withdrawals', [
-            'amount'         => 1000000,
-            'bank_name'      => 'BCA',
-            'account_name'   => 'John Doe',
+            'amount' => 1000000,
+            'bank_name' => 'BCA',
+            'account_name' => 'John Doe',
             'account_number' => '1234567890',
         ]);
 
-        if ($response->status() !== 201) {
-            dump($response->json());
-        }
-
         $response->assertStatus(201)
-            ->assertJsonPath('data.status', 'pending');
+            ->assertJsonPath('data.status', 'pending'); // Should be pending by default
 
         $this->assertDatabaseHas('withdrawals', [
             'wallet_id' => $wallet->id,
-            'amount'    => 1000000,
-            'status'    => 'pending',
+            'amount' => 1000000,
+            'status' => 'pending',
         ]);
     }
 
@@ -65,13 +76,14 @@ class WithdrawalTest extends TestCase
         $wallet->update(['available_balance' => 2000000]);
 
         $response = $this->actingAs($tech)->postJson('/api/v1/withdrawals', [
-            'amount'         => 500000,
-            'bank_name'      => 'Mandiri',
-            'account_name'   => 'Jane Tech',
+            'amount' => 500000,
+            'bank_name' => 'Mandiri',
+            'account_name' => 'Jane Tech',
             'account_number' => '9876543210',
         ]);
 
-        $response->assertStatus(201);
+        $response->assertStatus(201)
+            ->assertJsonPath('data.status', 'pending'); // Should be pending by default
         $this->assertEquals(1500000, (float) $wallet->fresh()->available_balance);
     }
 
@@ -84,9 +96,9 @@ class WithdrawalTest extends TestCase
         $wallet->update(['available_balance' => 500000]);
 
         $response = $this->actingAs($seller)->postJson('/api/v1/withdrawals', [
-            'amount'         => 1000000,
-            'bank_name'      => 'BCA',
-            'account_name'   => 'John',
+            'amount' => 1000000,
+            'bank_name' => 'BCA',
+            'account_name' => 'John',
             'account_number' => '123',
         ]);
 
@@ -100,9 +112,9 @@ class WithdrawalTest extends TestCase
         $wallet->update(['available_balance' => 5000]);
 
         $response = $this->actingAs($seller)->postJson('/api/v1/withdrawals', [
-            'amount'         => 5000,
-            'bank_name'      => 'BCA',
-            'account_name'   => 'John',
+            'amount' => 5000,
+            'bank_name' => 'BCA',
+            'account_name' => 'John',
             'account_number' => '123',
         ]);
 
@@ -118,14 +130,7 @@ class WithdrawalTest extends TestCase
         $wallet = Wallet::where('user_id', $seller->id)->first();
         $wallet->update(['available_balance' => 5000000]);
 
-        $withdrawal = Withdrawal::create([
-            'wallet_id'      => $wallet->id,
-            'amount'         => 1000000,
-            'bank_name'      => 'BCA',
-            'account_name'   => 'John',
-            'account_number' => '123',
-            'status'         => 'pending',
-        ]);
+        $withdrawal = $this->createWithdrawal($seller, 1000000, 'pending');
 
         $response = $this->actingAs($admin)->putJson("/api/v1/admin/withdrawals/{$withdrawal->id}/approve");
 
@@ -145,14 +150,7 @@ class WithdrawalTest extends TestCase
         $wallet = Wallet::where('user_id', $seller->id)->first();
         $wallet->update(['available_balance' => 5000000, 'frozen_balance' => 0]);
 
-        $withdrawal = Withdrawal::create([
-            'wallet_id'      => $wallet->id,
-            'amount'         => 1000000,
-            'bank_name'      => 'BCA',
-            'account_name'   => 'John',
-            'account_number' => '123',
-            'status'         => 'pending',
-        ]);
+        $withdrawal = $this->createWithdrawal($seller, 1000000, 'pending');
 
         // Manually freeze for this test (in real flow, create() does this)
         $wallet->decrement('available_balance', 1000000);
@@ -176,19 +174,18 @@ class WithdrawalTest extends TestCase
         $wallet = Wallet::where('user_id', $seller->id)->first();
         $wallet->update(['available_balance' => 5000000]);
 
-        // Seller creates withdrawal first
         $response = $this->actingAs($seller)->postJson('/api/v1/withdrawals', [
-            'amount'         => 1000000,
-            'bank_name'      => 'BCA',
-            'account_name'   => 'John',
+            'amount' => 1000000,
+            'bank_name' => 'BCA',
+            'account_name' => 'John',
             'account_number' => '123',
         ]);
 
-        $this->assertEquals(201, $response->status());
-        
+        $response->assertStatus(201); // Withdrawal created, balance frozen
+
         // Get withdrawal ID
         $withdrawal = Withdrawal::first();
-        
+
         // Sebelum reject: available_balance sudah berkurang
         $this->assertEquals(4000000, (float) $wallet->fresh()->available_balance);
 
@@ -205,37 +202,20 @@ class WithdrawalTest extends TestCase
     public function test_seller_cannot_approve_withdrawal(): void
     {
         $seller = $this->createUser('seller');
-        $wallet = Wallet::where('user_id', $seller->id)->first();
-        $wallet->update(['available_balance' => 5000000]);
+        $admin = $this->createUser('admin'); // Admin needed for proper approved_by
+        $withdrawal = $this->createWithdrawal($seller, 1000000, 'pending');
 
-        $withdrawal = Withdrawal::create([
-            'wallet_id'      => $wallet->id,
-            'amount'         => 1000000,
-            'bank_name'      => 'BCA',
-            'account_name'   => 'John',
-            'account_number' => '123',
-            'status'         => 'pending',
-        ]);
-
-        $this->actingAs($seller)->putJson("/api/v1/admin/withdrawals/{$withdrawal->id}/approve")
+        $response = $this->actingAs($seller)->putJson("/api/v1/admin/withdrawals/{$withdrawal->id}/approve")
             ->assertStatus(403);
     }
 
     public function test_seller_cannot_reject_withdrawal(): void
     {
         $seller = $this->createUser('seller');
-        $wallet = Wallet::where('user_id', $seller->id)->first();
+        $admin = $this->createUser('admin'); // Admin needed for proper approved_by
+        $withdrawal = $this->createWithdrawal($seller, 1000000, 'pending');
 
-        $withdrawal = Withdrawal::create([
-            'wallet_id'      => $wallet->id,
-            'amount'         => 1000000,
-            'bank_name'      => 'BCA',
-            'account_name'   => 'John',
-            'account_number' => '123',
-            'status'         => 'pending',
-        ]);
-
-        $this->actingAs($seller)->putJson("/api/v1/admin/withdrawals/{$withdrawal->id}/reject", [
+        $response = $this->actingAs($seller)->putJson("/api/v1/admin/withdrawals/{$withdrawal->id}/reject", [
             'rejection_reason' => 'Ditolak',
         ])->assertStatus(403);
     }
@@ -248,10 +228,10 @@ class WithdrawalTest extends TestCase
         $wallet = Wallet::where('user_id', $buyer->id)->first();
         $wallet->update(['available_balance' => 5000000]);
 
-        $this->actingAs($buyer)->postJson('/api/v1/withdrawals', [
-            'amount'         => 1000000,
-            'bank_name'      => 'BCA',
-            'account_name'   => 'John',
+        $response = $this->actingAs($buyer)->postJson('/api/v1/withdrawals', [
+            'amount' => 1000000,
+            'bank_name' => 'BCA',
+            'account_name' => 'John',
             'account_number' => '123',
         ])->assertStatus(403);
     }
@@ -259,9 +239,9 @@ class WithdrawalTest extends TestCase
     public function test_unauthenticated_cannot_create_withdrawal(): void
     {
         $this->postJson('/api/v1/withdrawals', [
-            'amount'         => 1000000,
-            'bank_name'      => 'BCA',
-            'account_name'   => 'John',
+            'amount' => 1000000,
+            'bank_name' => 'BCA',
+            'account_name' => 'John',
             'account_number' => '123',
         ])->assertStatus(401);
     }
@@ -270,16 +250,7 @@ class WithdrawalTest extends TestCase
     {
         $seller1 = $this->createUser('seller', '1');
         $seller2 = $this->createUser('seller', '2');
-        $wallet1 = Wallet::where('user_id', $seller1->id)->first();
-
-        $withdrawal = Withdrawal::create([
-            'wallet_id'      => $wallet1->id,
-            'amount'         => 1000000,
-            'bank_name'      => 'BCA',
-            'account_name'   => 'John',
-            'account_number' => '123',
-            'status'         => 'pending',
-        ]);
+        $withdrawal = $this->createWithdrawal($seller1, 1000000, 'pending'); // Create for seller1
 
         $this->actingAs($seller2)->getJson("/api/v1/withdrawals/{$withdrawal->id}")
             ->assertStatus(403);
@@ -294,15 +265,15 @@ class WithdrawalTest extends TestCase
         $wallet->update(['available_balance' => 5000000]);
 
         $this->actingAs($seller)->postJson('/api/v1/withdrawals', [
-            'amount'         => 1000000,
-            'bank_name'      => 'BCA',
-            'account_name'   => 'John',
+            'amount' => 1000000,
+            'bank_name' => 'BCA',
+            'account_name' => 'John',
             'account_number' => '123',
         ]);
 
         $this->assertDatabaseHas('audit_logs', [
             'user_id' => $seller->id,
-            'action'  => 'withdrawal_created',
+            'action' => 'withdrawal_created',
             'auditable_type' => Withdrawal::class,
         ]);
     }
@@ -314,20 +285,13 @@ class WithdrawalTest extends TestCase
         $wallet = Wallet::where('user_id', $seller->id)->first();
         $wallet->update(['available_balance' => 5000000]);
 
-        $withdrawal = Withdrawal::create([
-            'wallet_id'      => $wallet->id,
-            'amount'         => 1000000,
-            'bank_name'      => 'BCA',
-            'account_name'   => 'John',
-            'account_number' => '123',
-            'status'         => 'pending',
-        ]);
+        $withdrawal = $this->createWithdrawal($seller, 1000000, 'pending');
 
         $this->actingAs($admin)->putJson("/api/v1/admin/withdrawals/{$withdrawal->id}/approve");
 
         $this->assertDatabaseHas('audit_logs', [
             'user_id' => $admin->id,
-            'action'  => 'withdrawal_approved',
+            'action' => 'withdrawal_approved',
         ]);
     }
 
@@ -340,14 +304,7 @@ class WithdrawalTest extends TestCase
         $wallet = Wallet::where('user_id', $seller->id)->first();
         $wallet->update(['available_balance' => 5000000, 'frozen_balance' => 0]);
 
-        $withdrawal = Withdrawal::create([
-            'wallet_id'      => $wallet->id,
-            'amount'         => 1000000,
-            'bank_name'      => 'BCA',
-            'account_name'   => 'John',
-            'account_number' => '123',
-            'status'         => 'pending',
-        ]);
+        $withdrawal = $this->createWithdrawal($seller, 1000000, 'pending');
 
         // Manually freeze for this test (in real flow, create() does this)
         $wallet->decrement('available_balance', 1000000);
@@ -358,10 +315,10 @@ class WithdrawalTest extends TestCase
         ]);
 
         $this->assertDatabaseHas('wallet_transactions', [
-            'wallet_id'      => $wallet->id,
-            'reference_id'   => $withdrawal->id,
+            'wallet_id' => $wallet->id,
+            'reference_id' => $withdrawal->id,
             'reference_type' => Withdrawal::class,
-            'type'           => 'withdraw',
+            'type' => 'withdrawal_rejected',
         ]);
     }
 
@@ -371,17 +328,7 @@ class WithdrawalTest extends TestCase
     {
         $seller = $this->createUser('seller');
         $admin = $this->createUser('admin');
-        $wallet = Wallet::where('user_id', $seller->id)->first();
-
-        $withdrawal = Withdrawal::create([
-            'wallet_id'      => $wallet->id,
-            'amount'         => 1000000,
-            'bank_name'      => 'BCA',
-            'account_name'   => 'John',
-            'account_number' => '123',
-            'status'         => 'approved',
-            'approved_by'    => $admin->id,
-        ]);
+        $withdrawal = $this->createWithdrawal($seller, 1000000, 'approved'); // Create as approved
 
         $response = $this->actingAs($admin)->putJson("/api/v1/admin/withdrawals/{$withdrawal->id}/approve");
 
@@ -395,28 +342,26 @@ class WithdrawalTest extends TestCase
         $admin = $this->createUser('admin');
         $seller1 = $this->createUser('seller', '1');
         $seller2 = $this->createUser('seller', '2');
-        
+
         $wallet1 = Wallet::where('user_id', $seller1->id)->first();
         $wallet2 = Wallet::where('user_id', $seller2->id)->first();
         $wallet1->update(['available_balance' => 5000000]);
         $wallet2->update(['available_balance' => 5000000]);
 
         // Create withdrawals through the API
-        $response1 = $this->actingAs($seller1)->postJson('/api/v1/withdrawals', [
-            'amount'         => 1000000,
-            'bank_name'      => 'BCA',
-            'account_name'   => 'John',
+        $this->actingAs($seller1)->postJson('/api/v1/withdrawals', [
+            'amount' => 1000000,
+            'bank_name' => 'BCA',
+            'account_name' => 'John',
             'account_number' => '123',
-        ]);
-        $this->assertEquals(201, $response1->status());
+        ])->assertStatus(201); // Assert 201 here
 
-        $response2 = $this->actingAs($seller2)->postJson('/api/v1/withdrawals', [
-            'amount'         => 2000000,
-            'bank_name'      => 'Mandiri',
-            'account_name'   => 'Jane',
+        $this->actingAs($seller2)->postJson('/api/v1/withdrawals', [
+            'amount' => 2000000,
+            'bank_name' => 'Mandiri',
+            'account_name' => 'Jane',
             'account_number' => '456',
-        ]);
-        $this->assertEquals(201, $response2->status());
+        ])->assertStatus(201); // Assert 201 here
 
         // Admin should see both
         $this->assertCount(2, Withdrawal::all());

@@ -1,10 +1,15 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
+/**
+ * @mixin \App\Models\InspectionJob
+ */
 class InspectionJobResource extends JsonResource
 {
     public function toArray(Request $request): array
@@ -12,73 +17,67 @@ class InspectionJobResource extends JsonResource
         $scheduleDate = $this->schedule_date;
 
         return [
-            'id'             => $this->id,
-            'status'         => $this->status,
-            'fee'            => $this->fee,
-            'schedule_date'  => $scheduleDate,
+            'id' => $this->id,
+            'status' => $this->status,
+            'fee' => $this->fee,
+            'schedule_date' => $scheduleDate,
             // Aliases used by frontend
             'scheduled_date' => $scheduleDate ? $scheduleDate->toDateString() : null,
             'scheduled_time' => $scheduleDate ? $scheduleDate->format('H:i') : null,
             // Laptop info from product
-            'laptop_brand'   => $this->whenLoaded('product', fn() =>
-                optional($this->product->brand)->name ?? $this->product->model
+            'laptop_brand' => $this->whenLoaded('product', fn () => optional($this->product->brand)->name ?? $this->product->model
             ),
-            'laptop_model'   => $this->whenLoaded('product', fn() => $this->product->model),
+            'laptop_model' => $this->whenLoaded('product', fn () => $this->product->model),
             'issues_description' => $this->issues_description ?? null,
-            'address'        => $this->address ?? null,
+            'address' => $this->address ?? null,
             'laptop_address' => $this->laptop_address ?? null,
             // Technician-set schedule fields
-            'scheduled_by_technician'   => $this->scheduled_by_technician,
-            'inspection_notes'          => $this->inspection_notes,
-            'technician_schedule_date'  => $this->technician_schedule_date?->toDateString(),
-            'technician_schedule_time'  => $this->technician_schedule_time,
+            'scheduled_by_technician' => $this->scheduled_by_technician,
+            'inspection_notes' => $this->inspection_notes,
+            'technician_schedule_date' => $this->technician_schedule_date?->toDateString(),
+            'technician_schedule_time' => $this->technician_schedule_time,
             'technician_schedule_notes' => $this->technician_schedule_notes,
-            'product_id'     => $this->product_id,
+            'product_id' => $this->product_id,
             // Convenient top-level product name for display
-            'product_name'   => $this->whenLoaded('product', fn() =>
-                optional($this->product->brand)->name
-                    ? optional($this->product->brand)->name . ' ' . $this->product->model
+            'product_name' => $this->whenLoaded('product', fn () => optional($this->product->brand)->name
+                    ? optional($this->product->brand)->name.' '.$this->product->model
                     : $this->product->model
             ),
-            'product'        => $this->whenLoaded('product', fn() => [
-                'id'    => $this->product->id,
-                'name'  => $this->product->model,
+            'product' => $this->whenLoaded('product', fn () => [
+                'id' => $this->product->id,
+                'name' => $this->product->model,
                 'model' => $this->product->model,
                 'brand' => optional($this->product->brand)->name ?? null,
-                'slug'  => $this->product->slug,
+                'slug' => $this->product->slug,
                 'seller' => $this->product->relationLoaded('seller') ? [
-                    'id'   => $this->product->seller->id,
+                    'id' => $this->product->seller->id,
                     'name' => $this->product->seller->name,
                 ] : ($this->product->relationLoaded('user') ? [
-                    'id'   => $this->product->user->id,
+                    'id' => $this->product->user->id,
                     'name' => $this->product->user->name,
                 ] : null),
             ]),
-            'technician'     => $this->whenLoaded('technician', fn() => [
-                'id'   => $this->technician->id,
+            'technician' => $this->whenLoaded('technician', fn () => [
+                'id' => $this->technician->id,
                 'name' => $this->technician->name,
             ]),
-            'buyer'          => $this->whenLoaded('requester', fn() => [
-                'id'   => $this->requester->id,
+            'buyer' => $this->whenLoaded('requester', fn () => [
+                'id' => $this->requester->id,
                 'name' => $this->requester->name,
             ]),
-            'requester'      => $this->whenLoaded('requester', fn() => [
-                'id'   => $this->requester->id,
+            'requester' => $this->whenLoaded('requester', fn () => [
+                'id' => $this->requester->id,
                 'name' => $this->requester->name,
             ]),
-            'payment'        => $this->whenLoaded('payment', fn() =>
-                $this->payment ? new InspectionPaymentResource($this->payment) : null
+            'payment' => $this->whenLoaded('payment', fn () => $this->payment ? new InspectionPaymentResource($this->payment) : null
             ),
-            'report'         => $this->whenLoaded('report', fn() =>
-                $this->report ? new InspectionReportResource($this->report) : null
+            'report' => $this->whenLoaded('report', fn () => $this->report ? new InspectionReportResource($this->report) : null
             ),
-            'rating'         => $this->whenLoaded('rating', fn() =>
-                $this->rating ? new InspectionRatingResource($this->rating) : null
+            'rating' => $this->whenLoaded('rating', fn () => $this->rating ? new InspectionRatingResource($this->rating) : null
             ),
-            'buyer_rating'   => $this->whenLoaded('rating', fn() =>
-                $this->rating?->rating
+            'buyer_rating' => $this->whenLoaded('rating', fn () => $this->rating?->rating
             ),
-            'created_at'     => $this->created_at,
+            'created_at' => $this->created_at,
         ];
     }
 }

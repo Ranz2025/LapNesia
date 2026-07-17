@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -16,7 +18,7 @@ return new class extends Migration
             $table->dateTime('schedule_date');
             $table->decimal('fee', 15, 2);
             $table->enum('status', [
-                'assigned', 'accepted', 'in_progress', 'completed', 'rejected', 'cancelled'
+                'assigned', 'accepted', 'in_progress', 'completed', 'rejected', 'cancelled',
             ])->default('assigned');
             $table->timestamps();
 

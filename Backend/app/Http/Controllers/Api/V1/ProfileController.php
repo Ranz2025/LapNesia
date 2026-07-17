@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
@@ -12,7 +14,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ProfileController extends Controller
@@ -25,6 +26,7 @@ class ProfileController extends Controller
     public function show(Request $request): JsonResponse
     {
         $user = $request->user()->load('wallet', 'technicianProfile');
+
         return $this->successResponse(new UserResource($user), 'Profil berhasil diambil.');
     }
 
@@ -36,8 +38,8 @@ class ProfileController extends Controller
         $user = $request->user();
 
         $validated = $request->validate([
-            'name'    => 'sometimes|string|max:100',
-            'phone'   => ['sometimes', 'string', 'max:20', Rule::unique('users')->ignore($user->id)],
+            'name' => 'sometimes|string|max:100',
+            'phone' => ['sometimes', 'string', 'max:20', Rule::unique('users')->ignore($user->id)],
             'address' => 'sometimes|nullable|string|max:500',
         ]);
 
@@ -131,14 +133,14 @@ class ProfileController extends Controller
         $profile = $user->technicianProfile;
         $url = $profile?->certification_url;
 
-        if (!$url) {
+        if (! $url) {
             return $this->errorResponse('Sertifikat tidak ditemukan.', 404);
         }
 
         $path = parse_url($url, PHP_URL_PATH) ?: $url;
         $path = ltrim(str_replace('/storage/', '', $path), '/');
 
-        if (!Storage::disk('public')->exists($path)) {
+        if (! Storage::disk('public')->exists($path)) {
             return $this->errorResponse('File sertifikat tidak tersedia.', 404);
         }
 
@@ -156,19 +158,23 @@ class ProfileController extends Controller
     {
         $request->validate([
             'current_password' => 'required|string',
-            'password'         => 'required|string|min:8|confirmed',
+            'password' => 'required|string|min:8|confirmed',
         ]);
 
         $user = $request->user();
 
-        if (!Hash::check($request->current_password, $user->password)) {
+        if (! Hash::check($request->current_password, $user->password)) {
             return $this->errorResponse('Password lama tidak sesuai.', 422);
         }
 
         $user->update(['password' => Hash::make($request->password)]);
 
         // Revoke all other tokens
-        $user->tokens()->where('id', '!=', $user->currentAccessToken()->id)->delete();
+        if ($user->currentAccessToken()) {
+            $user->tokens()->where('id', '!=', $user->currentAccessToken()->id)->delete();
+        } else {
+            $user->tokens()->delete();
+        }
 
         return $this->successResponse(null, 'Password berhasil diubah.');
     }

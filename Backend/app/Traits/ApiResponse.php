@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Traits;
 
 use Illuminate\Http\JsonResponse;
@@ -14,7 +16,7 @@ trait ApiResponse
         return response()->json([
             'success' => true,
             'message' => $message,
-            'data' => $data
+            'data' => $data,
         ], $code);
     }
 

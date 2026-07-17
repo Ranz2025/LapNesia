@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Notifications;
 
 use App\Models\InspectionJob;
@@ -20,10 +22,10 @@ class InspectionJobCreatedNotification extends Notification
     public function toDatabase(object $notifiable): array
     {
         return [
-            'type'       => 'inspection_job_created',
-            'title'      => 'Permintaan Inspeksi Baru',
-            'message'    => 'Buyer meminta inspeksi untuk produk ' . ($this->job->product?->model ?? 'laptop') . '. Segera konfirmasi.',
-            'job_id'     => $this->job->id,
+            'type' => 'inspection_job_created',
+            'title' => 'Permintaan Inspeksi Baru',
+            'message' => 'Buyer meminta inspeksi untuk produk '.($this->job->product?->model ?? 'laptop').'. Segera konfirmasi.',
+            'job_id' => $this->job->id,
             'action_url' => '/technician/jobs',
         ];
     }

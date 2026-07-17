@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 
@@ -16,12 +18,12 @@ return new class extends Migration
 
         foreach ($techniciansWithoutProfile as $userId) {
             DB::table('technician_profiles')->insert([
-                'user_id'           => $userId,
-                'inspection_fee'    => 150000.00,
-                'rating_avg'        => 0.00,
+                'user_id' => $userId,
+                'inspection_fee' => 150000.00,
+                'rating_avg' => 0.00,
                 'total_inspections' => 0,
-                'created_at'        => now(),
-                'updated_at'        => now(),
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
         }
 

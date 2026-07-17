@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Notifications;
 
 use App\Models\InspectionJob;
@@ -26,11 +28,11 @@ class InspectionJobCancelledNotification extends Notification
         $by = $this->cancelledBy === 'buyer' ? 'Buyer' : 'Teknisi';
 
         return [
-            'type'       => 'inspection_job_cancelled',
-            'title'      => 'Inspeksi Dibatalkan',
-            'message'    => "{$by} membatalkan permintaan inspeksi untuk produk {$product}.",
-            'job_id'     => $this->job->id,
-            'product'    => $product,
+            'type' => 'inspection_job_cancelled',
+            'title' => 'Inspeksi Dibatalkan',
+            'message' => "{$by} membatalkan permintaan inspeksi untuk produk {$product}.",
+            'job_id' => $this->job->id,
+            'product' => $product,
             'cancelled_by' => $this->cancelledBy,
         ];
     }
