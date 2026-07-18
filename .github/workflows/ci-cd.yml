@@ -297,4 +297,6 @@ jobs:
           status: ${{ job.status }}
           text: 'Production deployment ${{ job.status }}'
           webhook_url: ${{ secrets.SLACK_WEBHOOK }}
-        if: always() && secrets.SLACK_WEBHOOK != ''
+        if: always() && env.SLACK_WEBHOOK != ''
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
