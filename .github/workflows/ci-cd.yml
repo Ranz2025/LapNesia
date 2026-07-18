@@ -285,11 +285,11 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H $DEPLOY_HOST >> ~/.ssh/known_hosts
           ssh -i ~/.ssh/deploy_key $DEPLOY_USER@$DEPLOY_HOST << 'EOF'
-            cd /app/lapnesia
+            cd /app/LapNesia || cd /app/lapnesia
             docker-compose pull
             docker-compose up -d
-            docker-compose exec -T app php artisan migrate --force
-            docker-compose exec -T app php artisan cache:clear
+            docker-compose exec -T backend php artisan migrate --force
+            docker-compose exec -T backend php artisan cache:clear
           EOF
 
       - name: Notify Deployment
